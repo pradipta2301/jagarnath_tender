@@ -101,14 +101,12 @@ def load_data():
         if 'Tender Value' in df.columns:
             df['Tender Value'] = pd.to_numeric(df['Tender Value'], errors='coerce').fillna(0)
             
-        # Generate direct GeM PDF/Portal URLs using the Tender No
+        # Point to GeM's official public BidPlus search page
         def generate_direct_link(row):
             t_no = str(row.get('Tender No', '')).strip()
             if t_no.startswith('GEM'):
-                # Official direct GeM bid document PDF endpoint pattern
-                return f"https://gem.gov.in/showbidder/gpdf.php?bid={t_no.replace('/', '_')}"
+                return f"https://bidplus.gem.gov.in/all-bids?q={t_no}"
             else:
-                # Fallback for district tenders
                 return "https://tenders.odisha.gov.in"
 
         df['Link'] = df.apply(generate_direct_link, axis=1)
