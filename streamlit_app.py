@@ -101,7 +101,7 @@ def load_data():
         if 'Tender Value' in df.columns:
             df['Tender Value'] = pd.to_numeric(df['Tender Value'], errors='coerce').fillna(0)
             
-        # Use actual link from Excel if it's a URL, otherwise fallback gracefully
+        # Use actual link from Excel if valid, otherwise point to official GeM BidPlus search page
         def get_valid_link(row):
             link = str(row.get('Link', '')).strip()
             t_no = str(row.get('Tender No', '')).strip()
@@ -242,7 +242,7 @@ else:
         
         column_configs = {}
         if 'Link' in display_df.columns:
-            column_configs['Link'] = st.column_config.LinkColumn("Document Link", display_text="View PDF 🔗")
+            column_configs['Link'] = st.column_config.LinkColumn("Official Portal", display_text="Search on GeM 🔍")
             
         st.dataframe(
             display_df,
