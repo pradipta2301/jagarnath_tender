@@ -98,6 +98,13 @@ def load_data():
         df = pd.read_excel(file_path)
         if 'Tender Value' in df.columns:
             df['Tender Value'] = pd.to_numeric(df['Tender Value'], errors='coerce').fillna(0)
+            
+        # Fix the Link column by generating valid search URLs using the Tender No
+        if 'Tender No' in df.columns:
+            df['Link'] = df['Tender No'].apply(lambda x: f"https://www.google.com/search?q={x}" if pd.notna(x) else "https://gem.gov.in")
+        else:
+            df['Link'] = "https://gem.gov.in"
+            
         return df
     except Exception as e:
         st.error(f"Failed to load Excel file: {e}")
@@ -223,7 +230,6 @@ else:
     with tab2:
         display_df = filtered_df.dropna(axis=1, how='all')
         
-        # Configure clickable links natively
         column_configs = {}
         if 'Link' in display_df.columns:
             column_configs['Link'] = st.column_config.LinkColumn("Document Link", display_text="View PDF 🔗")
