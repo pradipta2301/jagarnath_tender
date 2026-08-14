@@ -101,15 +101,20 @@ def load_data():
         if 'Tender Value' in df.columns:
             df['Tender Value'] = pd.to_numeric(df['Tender Value'], errors='coerce').fillna(0)
             
-        # Point to GeM's official public BidPlus search page
-        def generate_direct_link(row):
+        # Use actual link from Excel if it's a URL, otherwise fallback gracefully
+        def get_valid_link(row):
+            link = str(row.get('Link', '')).strip()
             t_no = str(row.get('Tender No', '')).strip()
+            
+            if link.startswith('http'):
+                return link
+            
             if t_no.startswith('GEM'):
                 return f"https://bidplus.gem.gov.in/all-bids?q={t_no}"
             else:
                 return "https://tenders.odisha.gov.in"
 
-        df['Link'] = df.apply(generate_direct_link, axis=1)
+        df['Link'] = df.apply(get_valid_link, axis=1)
         return df
     except Exception as e:
         st.error(f"Failed to load Excel file: {e}")
