@@ -92,19 +92,26 @@ st.markdown("""
 # --- DATA LOADING ---
 @st.cache_data(ttl=600)
 def load_data():
-    file_path = "odisha_tenders.xlsx" 
-    
+    # Support both possible filenames in your repository
+    file_path = "odisha_tenders.xlsx"
+    if not os.path.exists(file_path):
+        file_path = "odisha_tenders_20260814_122122.xlsx"
+        
     try:
         df = pd.read_excel(file_path)
         if 'Tender Value' in df.columns:
             df['Tender Value'] = pd.to_numeric(df['Tender Value'], errors='coerce').fillna(0)
             
-        # Fix the Link column by generating valid search URLs using the Tender No
-        if 'Tender No' in df.columns:
-            df['Link'] = df['Tender No'].apply(lambda x: f"https://www.google.com/search?q={x}" if pd.notna(x) else "https://gem.gov.in")
-        else:
-            df['Link'] = "https://gem.gov.in"
-            
+        # Dynamically generate correct absolute URLs for each tender
+        def generate_link(row):
+            t_no = str(row.get('Tender No', ''))
+            dist = str(row.get('District', ''))
+            if t_no.startswith('GEM'):
+                return f"https://www.google.com/search?q=site:gem.gov.in+{t_no}"
+            else:
+                return f"https://www.google.com/search?q=Odisha+tender+{t_no}+{dist}"
+
+        df['Link'] = df.apply(generate_link, axis=1)
         return df
     except Exception as e:
         st.error(f"Failed to load Excel file: {e}")
