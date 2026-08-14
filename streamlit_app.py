@@ -92,7 +92,6 @@ st.markdown("""
 # --- DATA LOADING ---
 @st.cache_data(ttl=600)
 def load_data():
-    # Support both possible filenames in your repository
     file_path = "odisha_tenders.xlsx"
     if not os.path.exists(file_path):
         file_path = "odisha_tenders_20260814_122122.xlsx"
@@ -102,16 +101,17 @@ def load_data():
         if 'Tender Value' in df.columns:
             df['Tender Value'] = pd.to_numeric(df['Tender Value'], errors='coerce').fillna(0)
             
-        # Dynamically generate correct absolute URLs for each tender
-        def generate_link(row):
-            t_no = str(row.get('Tender No', ''))
-            dist = str(row.get('District', ''))
+        # Generate direct GeM PDF/Portal URLs using the Tender No
+        def generate_direct_link(row):
+            t_no = str(row.get('Tender No', '')).strip()
             if t_no.startswith('GEM'):
-                return f"https://www.google.com/search?q=site:gem.gov.in+{t_no}"
+                # Official direct GeM bid document PDF endpoint pattern
+                return f"https://gem.gov.in/showbidder/gpdf.php?bid={t_no.replace('/', '_')}"
             else:
-                return f"https://www.google.com/search?q=Odisha+tender+{t_no}+{dist}"
+                # Fallback for district tenders
+                return "https://tenders.odisha.gov.in"
 
-        df['Link'] = df.apply(generate_link, axis=1)
+        df['Link'] = df.apply(generate_direct_link, axis=1)
         return df
     except Exception as e:
         st.error(f"Failed to load Excel file: {e}")
