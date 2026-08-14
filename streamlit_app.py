@@ -16,11 +16,11 @@ st.markdown("""
 <style>
     /* 1. Reduce Top Spacing */
     .block-container {
-        padding-top: 1.5rem !important; /* Pulls everything up */
+        padding-top: 1.5rem !important;
         margin-top: 0 !important;
     }
     
-    /* Centered Header Styles - made more compact */
+    /* Centered Header Styles */
     .dashboard-header {
         text-align: center;
         padding-bottom: 5px;
@@ -41,12 +41,12 @@ st.markdown("""
     
     /* 2. Custom KPI Card Styles (Light Orange with Shadow) */
     .kpi-card {
-        background-color: #FFF4E6; /* Light Orange Background */
+        background-color: #FFF4E6;
         border-radius: 8px;
         padding: 15px 20px;
         margin-bottom: 15px;
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15); /* Distinct shadow on the back */
-        border: 1px solid rgba(255, 165, 0, 0.3); /* Soft orange border */
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        border: 1px solid rgba(255, 165, 0, 0.3);
         text-align: left;
         min-height: 90px;
         display: flex;
@@ -55,8 +55,8 @@ st.markdown("""
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .kpi-card:hover {
-        transform: translateY(-4px); /* Lifts up slightly on hover */
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25); /* Shadow gets larger on hover */
+        transform: translateY(-4px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
     }
     .kpi-label {
         font-size: 0.9rem;
@@ -74,15 +74,15 @@ st.markdown("""
         line-height: 1.2;
     }
     
-    /* Optional: Keep left border accents but adapt them for the orange background */
+    /* Left border accents */
     .kpi-blue { border-left: 5px solid #0078D4; }
     .kpi-green { border-left: 5px solid #107C41; }
     .kpi-orange { border-left: 5px solid #D83B01; }
     .kpi-purple { border-left: 5px solid #5C2D91; }
     
-    /* 3. Fallback CSS for standard HTML tables if generated */
-    th {
-        background-color: #E6E6FA !important; /* Light Purple */
+    /* 3. Table Header Styling via CSS */
+    thead tr th {
+        background-color: #E6E6FA !important;
         color: black !important;
         font-weight: bold !important;
     }
@@ -92,7 +92,6 @@ st.markdown("""
 # --- DATA LOADING ---
 @st.cache_data(ttl=600)
 def load_data():
-    # Updated to look directly in the current folder for deployment
     file_path = "odisha_tenders.xlsx" 
     
     try:
@@ -224,14 +223,14 @@ else:
     with tab2:
         display_df = filtered_df.dropna(axis=1, how='all')
         
-        # Apply Pandas Styler for the Light Purple Header with Bold Black Text
-        styled_df = display_df.style.set_table_styles([{
-            'selector': 'th',
-            'props': [('background-color', '#E6E6FA'), ('color', 'black'), ('font-weight', 'bold')]
-        }])
-        
+        # Configure clickable links natively
+        column_configs = {}
+        if 'Link' in display_df.columns:
+            column_configs['Link'] = st.column_config.LinkColumn("Document Link", display_text="View PDF 🔗")
+            
         st.dataframe(
-            styled_df,
+            display_df,
+            column_config=column_configs,
             hide_index=True,
             use_container_width=True,
             height=600
