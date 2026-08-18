@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import os
+from datetime import datetime
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
@@ -98,10 +99,31 @@ def load_data():
         
     try:
         df = pd.read_excel(file_path)
+        
+        # 1. Clean Tender Value
         if 'Tender Value' in df.columns:
             df['Tender Value'] = pd.to_numeric(df['Tender Value'], errors='coerce').fillna(0)
             
-        # Reads the direct URL from the Excel file's 'Link' column
+        # 2. Parse Dates for Accurate Filtering
+        for date_col in ['Published Date', 'Closing Date']:
+            if date_col in df.columns:
+                df[date_col] = pd.to_datetime(df[date_col], errors='coerce')
+
+        # 3. Determine the Source Website dynamically
+        if 'Tender No' in df.columns:
+            def identify_source(t_no):
+                t_no_str = str(t_no).strip().upper()
+                if t_no_str.startswith('GEM'):
+                    return 'GeM'
+                # Add more websites here later (e.g., if t_no_str.startswith('XYZ'): return 'New Site')
+                else:
+                    return 'NIC / State Portal'
+            
+            # Insert the column right after Tender No for easy viewing
+            idx = df.columns.get_loc('Tender No') + 1 if 'Tender No' in df.columns else len(df.columns)
+            df.insert(idx, 'Source Portal', df['Tender No'].apply(identify_source))
+
+        # 4. Parse Links properly
         def get_valid_link(row):
             link = str(row.get('Link', '')).strip()
             t_no = str(row.get('Tender No', '')).strip()
@@ -139,8 +161,15 @@ else:
     # --- SIDEBAR FILTERS ---
     st.sidebar.header("🔍 Filter Parameters")
     
-    search_query = st.sidebar.text_input("Search Tenders...")
+    search_query = st.sidebar.text_input("Search (Title, ID, Summary)")
     
+    # Text-Based Multiselects
+    if 'Source Portal' in df.columns:
+        sources = [d for d in df['Source Portal'].dropna().unique().tolist() if str(d).strip() != ""]
+        selected_sources = st.sidebar.multiselect("Source Website", options=sorted(sources))
+    else:
+        selected_sources = []
+
     if 'District' in df.columns:
         districts = [d for d in df['District'].dropna().unique().tolist() if str(d).strip() != ""]
         selected_districts = st.sidebar.multiselect("Select District", options=sorted(districts))
@@ -153,24 +182,56 @@ else:
     else:
         selected_depts = []
 
+    # Date Range Filters
+    st.sidebar.markdown("### 📅 Date Filters")
+    st.sidebar.caption("Select a Start and End date for ranges.")
+    
+    selected_pub_date = []
+    if 'Published Date' in df.columns and not df['Published Date'].dropna().empty:
+        min_pub = df['Published Date'].min().date()
+        max_pub = df['Published Date'].max().date()
+        selected_pub_date = st.sidebar.date_input("Published Date Range", value=[], min_value=min_pub, max_value=max_pub)
+
+    selected_close_date = []
+    if 'Closing Date' in df.columns and not df['Closing Date'].dropna().empty:
+        min_close = df['Closing Date'].min().date()
+        max_close = df['Closing Date'].max().date()
+        selected_close_date = st.sidebar.date_input("Closing Date Range", value=[], min_value=min_close, max_value=max_close)
+
     # --- APPLY FILTERS ---
     filtered_df = df.copy()
     
     if search_query:
-        # Create a search mask that looks across Title, Tender No, and Summary
         search_mask = (
             filtered_df['Title'].str.contains(search_query, case=False, na=False) |
             filtered_df['Tender No'].str.contains(search_query, case=False, na=False)
         )
         if 'Summary' in filtered_df.columns:
             search_mask |= filtered_df['Summary'].str.contains(search_query, case=False, na=False)
-            
         filtered_df = filtered_df[search_mask]
         
+    if selected_sources:
+        filtered_df = filtered_df[filtered_df['Source Portal'].isin(selected_sources)]
     if selected_districts:
         filtered_df = filtered_df[filtered_df['District'].isin(selected_districts)]
     if selected_depts:
         filtered_df = filtered_df[filtered_df['Department'].isin(selected_depts)]
+        
+    # Apply Published Date Filter (Must have both start and end date selected)
+    if len(selected_pub_date) == 2:
+        start_pub, end_pub = selected_pub_date
+        filtered_df = filtered_df[
+            (filtered_df['Published Date'].dt.date >= start_pub) & 
+            (filtered_df['Published Date'].dt.date <= end_pub)
+        ]
+        
+    # Apply Closing Date Filter (Must have both start and end date selected)
+    if len(selected_close_date) == 2:
+        start_close, end_close = selected_close_date
+        filtered_df = filtered_df[
+            (filtered_df['Closing Date'].dt.date >= start_close) & 
+            (filtered_df['Closing Date'].dt.date <= end_close)
+        ]
 
     # --- TOP METRIC CARDS ---
     col1, col2, col3, col4 = st.columns(4)
@@ -256,9 +317,16 @@ else:
         if 'Link' in display_df.columns:
             column_configs['Link'] = st.column_config.LinkColumn("Document Link", display_text="View PDF 🔗")
             
-        # Summary Setup: Kept compact; Streamlit will show popup on click!
+        # Summary Setup
         if 'Summary' in display_df.columns:
             column_configs['Summary'] = st.column_config.TextColumn("Summary", help="Click cell to expand and read full summary.")
+
+        # Date Format Setup
+        if 'Published Date' in display_df.columns:
+            column_configs['Published Date'] = st.column_config.DatetimeColumn("Published Date", format="DD MMM YYYY")
+            
+        if 'Closing Date' in display_df.columns:
+            column_configs['Closing Date'] = st.column_config.DatetimeColumn("Closing Date", format="DD MMM YYYY")
             
         st.dataframe(
             display_df,
@@ -266,6 +334,6 @@ else:
             hide_index=True,
             use_container_width=True,
             height=600,
-            selection_mode="single-row", # Highlights the entire row when clicked
-            on_select="ignore"           # Keeps the app from reloading when you click a row
+            selection_mode="single-row",
+            on_select="ignore"
         )
