@@ -40,35 +40,35 @@ st.markdown("""
         margin-bottom: 5px;
     }
     
-    /* 2. Custom KPI Card Styles (Light Orange with Shadow) */
+    /* 2. Custom KPI Card Styles (COMPACT MODE) */
     .kpi-card {
         background-color: #FFF4E6;
-        border-radius: 8px;
-        padding: 15px 20px;
-        margin-bottom: 15px;
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        border-radius: 6px;
+        padding: 8px 12px; /* Reduced padding for compact size */
+        margin-bottom: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Softer shadow */
         border: 1px solid rgba(255, 165, 0, 0.3);
         text-align: left;
-        min-height: 90px;
+        min-height: 65px; /* Reduced height to save vertical space */
         display: flex;
         flex-direction: column;
         justify-content: center;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .kpi-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
     }
     .kpi-label {
-        font-size: 0.9rem;
+        font-size: 0.8rem; /* Smaller text */
         font-weight: 600;
         color: #555;
-        margin-bottom: 5px;
+        margin-bottom: 2px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
     .kpi-value {
-        font-size: 1.8rem;
+        font-size: 1.4rem; /* Smaller number */
         font-weight: bold;
         color: #212529;
         margin: 0;
@@ -100,30 +100,27 @@ def load_data():
     try:
         df = pd.read_excel(file_path)
         
-        # 1. Clean Tender Value
         if 'Tender Value' in df.columns:
             df['Tender Value'] = pd.to_numeric(df['Tender Value'], errors='coerce').fillna(0)
             
-        # 2. Parse Dates for Accurate Filtering
-        for date_col in ['Published Date', 'Closing Date']:
+        # Parse Dates (Now includes Opening Date for active tracking)
+        for date_col in ['Published Date', 'Opening Date', 'Closing Date']:
             if date_col in df.columns:
                 df[date_col] = pd.to_datetime(df[date_col], errors='coerce')
 
-        # 3. Determine the Source Website dynamically
+        # Determine the Source Website dynamically
         if 'Tender No' in df.columns:
             def identify_source(t_no):
                 t_no_str = str(t_no).strip().upper()
                 if t_no_str.startswith('GEM'):
                     return 'GeM'
-                # Add more websites here later (e.g., if t_no_str.startswith('XYZ'): return 'New Site')
                 else:
                     return 'NIC / State Portal'
             
-            # Insert the column right after Tender No for easy viewing
             idx = df.columns.get_loc('Tender No') + 1 if 'Tender No' in df.columns else len(df.columns)
             df.insert(idx, 'Source Portal', df['Tender No'].apply(identify_source))
 
-        # 4. Parse Links properly
+        # Parse Links properly
         def get_valid_link(row):
             link = str(row.get('Link', '')).strip()
             t_no = str(row.get('Tender No', '')).strip()
@@ -163,7 +160,6 @@ else:
     
     search_query = st.sidebar.text_input("Search (Title, ID, Summary)")
     
-    # Text-Based Multiselects
     if 'Source Portal' in df.columns:
         sources = [d for d in df['Source Portal'].dropna().unique().tolist() if str(d).strip() != ""]
         selected_sources = st.sidebar.multiselect("Source Website", options=sorted(sources))
@@ -182,7 +178,6 @@ else:
     else:
         selected_depts = []
 
-    # Date Range Filters
     st.sidebar.markdown("### 📅 Date Filters")
     st.sidebar.caption("Select a Start and End date for ranges.")
     
@@ -217,7 +212,6 @@ else:
     if selected_depts:
         filtered_df = filtered_df[filtered_df['Department'].isin(selected_depts)]
         
-    # Apply Published Date Filter (Must have both start and end date selected)
     if len(selected_pub_date) == 2:
         start_pub, end_pub = selected_pub_date
         filtered_df = filtered_df[
@@ -225,7 +219,6 @@ else:
             (filtered_df['Published Date'].dt.date <= end_pub)
         ]
         
-    # Apply Closing Date Filter (Must have both start and end date selected)
     if len(selected_close_date) == 2:
         start_close, end_close = selected_close_date
         filtered_df = filtered_df[
@@ -236,8 +229,24 @@ else:
     # --- TOP METRIC CARDS ---
     col1, col2, col3, col4 = st.columns(4)
     
-    total_val = filtered_df['Tender Value'].sum()
-    formatted_val = f"₹ {total_val / 1000000:.2f} M" if total_val > 0 else "N/A"
+    total_tenders = len(filtered_df)
+    
+    # Active Tenders Logic
+    today = datetime.now().date()
+    active_count = 0
+    if not filtered_df.empty:
+        # Treat tender as open if Opening Date is past, or if missing, Published Date is past.
+        # It must ALSO have a Closing Date in the future (or no Closing Date listed).
+        is_opened = pd.Series(True, index=filtered_df.index)
+        
+        if 'Opening Date' in filtered_df.columns and 'Published Date' in filtered_df.columns:
+            is_opened = (filtered_df['Opening Date'].dt.date <= today) | (filtered_df['Opening Date'].isna() & (filtered_df['Published Date'].dt.date <= today))
+            
+        if 'Closing Date' in filtered_df.columns:
+            is_active = is_opened & (filtered_df['Closing Date'].isna() | (filtered_df['Closing Date'].dt.date >= today))
+            active_count = len(filtered_df[is_active])
+        else:
+            active_count = len(filtered_df[is_opened])
     
     dist_count = filtered_df['District'].nunique() if 'District' in filtered_df.columns else 0
     dept_count = filtered_df['Department'].nunique() if 'Department' in filtered_df.columns else 0
@@ -245,16 +254,16 @@ else:
     with col1:
         st.markdown(f"""
             <div class="kpi-card kpi-blue">
-                <div class="kpi-label">Total Opportunities</div>
-                <div class="kpi-value">{len(filtered_df)}</div>
+                <div class="kpi-label">Total Tenders</div>
+                <div class="kpi-value">{total_tenders}</div>
             </div>
         """, unsafe_allow_html=True)
         
     with col2:
         st.markdown(f"""
             <div class="kpi-card kpi-green">
-                <div class="kpi-label">Total Value Identified</div>
-                <div class="kpi-value">{formatted_val}</div>
+                <div class="kpi-label">Total Active Tenders</div>
+                <div class="kpi-value">{active_count}</div>
             </div>
         """, unsafe_allow_html=True)
         
@@ -308,22 +317,23 @@ else:
                 st.plotly_chart(fig_pie, use_container_width=True)
 
     with tab2:
-        # Drop columns completely empty of data to keep table clean
-        display_df = filtered_df.dropna(axis=1, how='all')
+        # Hide the specified columns by dropping them from the display copy only
+        cols_to_hide = ['State', 'Source Portal']
+        display_df = filtered_df.drop(columns=cols_to_hide, errors='ignore').dropna(axis=1, how='all')
         
         column_configs = {}
         
-        # Link Setup
         if 'Link' in display_df.columns:
             column_configs['Link'] = st.column_config.LinkColumn("Document Link", display_text="View PDF 🔗")
             
-        # Summary Setup
         if 'Summary' in display_df.columns:
             column_configs['Summary'] = st.column_config.TextColumn("Summary", help="Click cell to expand and read full summary.")
 
-        # Date Format Setup
         if 'Published Date' in display_df.columns:
             column_configs['Published Date'] = st.column_config.DatetimeColumn("Published Date", format="DD MMM YYYY")
+            
+        if 'Opening Date' in display_df.columns:
+            column_configs['Opening Date'] = st.column_config.DatetimeColumn("Opening Date", format="DD MMM YYYY")
             
         if 'Closing Date' in display_df.columns:
             column_configs['Closing Date'] = st.column_config.DatetimeColumn("Closing Date", format="DD MMM YYYY")
