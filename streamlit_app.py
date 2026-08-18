@@ -102,7 +102,20 @@ def load_data():
             df['Tender Value'] = pd.to_numeric(df['Tender Value'], errors='coerce').fillna(0)
             
         # Reads the direct URL from the Excel file's 'Link' column
-        if 'Link' not in df.columns:
+        def get_valid_link(row):
+            link = str(row.get('Link', '')).strip()
+            t_no = str(row.get('Tender No', '')).strip()
+            
+            if link.startswith('http'):
+                return link
+            if t_no.startswith('GEM'):
+                return f"https://bidplus.gem.gov.in/all-bids?q={t_no}"
+            else:
+                return "https://tenders.odisha.gov.in"
+
+        if 'Link' in df.columns:
+            df['Link'] = df.apply(get_valid_link, axis=1)
+        else:
             df['Link'] = "https://gem.gov.in"
             
         return df
@@ -144,10 +157,16 @@ else:
     filtered_df = df.copy()
     
     if search_query:
-        filtered_df = filtered_df[
+        # Create a search mask that looks across Title, Tender No, and Summary
+        search_mask = (
             filtered_df['Title'].str.contains(search_query, case=False, na=False) |
             filtered_df['Tender No'].str.contains(search_query, case=False, na=False)
-        ]
+        )
+        if 'Summary' in filtered_df.columns:
+            search_mask |= filtered_df['Summary'].str.contains(search_query, case=False, na=False)
+            
+        filtered_df = filtered_df[search_mask]
+        
     if selected_districts:
         filtered_df = filtered_df[filtered_df['District'].isin(selected_districts)]
     if selected_depts:
@@ -228,16 +247,25 @@ else:
                 st.plotly_chart(fig_pie, use_container_width=True)
 
     with tab2:
+        # Drop columns completely empty of data to keep table clean
         display_df = filtered_df.dropna(axis=1, how='all')
         
         column_configs = {}
+        
+        # Link Setup
         if 'Link' in display_df.columns:
             column_configs['Link'] = st.column_config.LinkColumn("Document Link", display_text="View PDF 🔗")
+            
+        # Summary Setup: Kept compact; Streamlit will show popup on click!
+        if 'Summary' in display_df.columns:
+            column_configs['Summary'] = st.column_config.TextColumn("Summary", help="Click cell to expand and read full summary.")
             
         st.dataframe(
             display_df,
             column_config=column_configs,
             hide_index=True,
             use_container_width=True,
-            height=600
+            height=600,
+            selection_mode="single-row", # Highlights the entire row when clicked
+            on_select="ignore"           # Keeps the app from reloading when you click a row
         )
