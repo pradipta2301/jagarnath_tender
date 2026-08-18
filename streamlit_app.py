@@ -185,6 +185,7 @@ section[data-testid="stSidebar"] .stDateInput input {
 /* ---------- Tabs ---------- */
 button[data-baseweb="tab"] {
     font-weight: 700 !important;
+    opacity: 1 !important; /* Keeps tabs visible without needing to hover */
 }
 
 button[data-baseweb="tab"][aria-selected="true"] {
@@ -358,6 +359,7 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### 📅 Date Filters")
 
 selected_pub_date = []
+min_pub, max_pub = None, None
 if "Published Date" in df.columns and not df["Published Date"].dropna().empty:
     min_pub = df["Published Date"].min().date()
     max_pub = df["Published Date"].max().date()
@@ -370,6 +372,7 @@ if "Published Date" in df.columns and not df["Published Date"].dropna().empty:
     )
 
 selected_close_date = []
+min_close, max_close = None, None
 if "Closing Date" in df.columns and not df["Closing Date"].dropna().empty:
     min_close = df["Closing Date"].min().date()
     max_close = df["Closing Date"].max().date()
@@ -422,19 +425,23 @@ if selected_depts:
         filtered_df["Department"].isin(selected_depts)
     ]
 
+# ONLY drop records if the user specifically changes the date from the min/max defaults
 if len(selected_pub_date) == 2:
     start_pub, end_pub = selected_pub_date
-    filtered_df = filtered_df[
-        (filtered_df["Published Date"].dt.date >= start_pub)
-        & (filtered_df["Published Date"].dt.date <= end_pub)
-    ]
+    if start_pub != min_pub or end_pub != max_pub:
+        filtered_df = filtered_df[
+            (filtered_df["Published Date"].dt.date >= start_pub)
+            & (filtered_df["Published Date"].dt.date <= end_pub)
+        ]
 
+# ONLY drop records if the user specifically changes the date from the min/max defaults
 if len(selected_close_date) == 2:
     start_close, end_close = selected_close_date
-    filtered_df = filtered_df[
-        (filtered_df["Closing Date"].dt.date >= start_close)
-        & (filtered_df["Closing Date"].dt.date <= end_close)
-    ]
+    if start_close != min_close or end_close != max_close:
+        filtered_df = filtered_df[
+            (filtered_df["Closing Date"].dt.date >= start_close)
+            & (filtered_df["Closing Date"].dt.date <= end_close)
+        ]
 
 
 # ============================================================
@@ -540,13 +547,91 @@ with updated_col:
 # ============================================================
 # TABS
 # ============================================================
-tab1, tab2 = st.tabs(["📊 Analytics", "🗃️ Tender Records"])
-
+# Swapped the order to put Tender Records first
+tab1, tab2 = st.tabs(["🗃️ Tender Records", "📊 Analytics"])
 
 # ============================================================
-# ANALYTICS TAB
+# RECORDS TAB (Now Tab 1)
 # ============================================================
 with tab1:
+
+    left, right = st.columns([3, 1])
+
+    with left:
+        st.markdown(
+            f'<div class="section-title">🗂️ Tender Records <span style="color:#64748b;font-weight:500;">({len(filtered_df):,})</span></div>',
+            unsafe_allow_html=True,
+        )
+
+    with right:
+        st.download_button(
+            "⬇️ Export CSV",
+            data=filtered_df.to_csv(index=False).encode("utf-8"),
+            file_name="filtered_odisha_tenders.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+
+    cols_to_hide = ["State", "Source Portal"]
+    display_df = (
+        filtered_df
+        .drop(columns=cols_to_hide, errors="ignore")
+        .dropna(axis=1, how="all")
+    )
+
+    column_configs = {}
+
+    if "Link" in display_df.columns:
+        column_configs["Link"] = st.column_config.LinkColumn(
+            "Document",
+            display_text="🔗 Open Tender",
+        )
+
+    if "Summary" in display_df.columns:
+        column_configs["Summary"] = st.column_config.TextColumn(
+            "Summary",
+            help="Click the cell to inspect the tender summary.",
+            width="large",
+        )
+
+    if "Published Date" in display_df.columns:
+        column_configs["Published Date"] = st.column_config.DatetimeColumn(
+            "Published",
+            format="DD MMM YYYY",
+        )
+
+    if "Opening Date" in display_df.columns:
+        column_configs["Opening Date"] = st.column_config.DatetimeColumn(
+            "Opening",
+            format="DD MMM YYYY",
+        )
+
+    if "Closing Date" in display_df.columns:
+        column_configs["Closing Date"] = st.column_config.DatetimeColumn(
+            "Closing",
+            format="DD MMM YYYY",
+        )
+
+    if "Tender Value" in display_df.columns:
+        column_configs["Tender Value"] = st.column_config.NumberColumn(
+            "Tender Value",
+            format="₹ %.0f",
+        )
+
+    st.dataframe(
+        display_df,
+        column_config=column_configs,
+        hide_index=True,
+        use_container_width=True,
+        height=620,
+        selection_mode="single-row",
+        on_select="ignore",
+    )
+
+# ============================================================
+# ANALYTICS TAB (Now Tab 2)
+# ============================================================
+with tab2:
 
     chart_col1, chart_col2 = st.columns(2)
 
@@ -694,85 +779,6 @@ with tab1:
                 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
                 st.plotly_chart(fig_close, use_container_width=True)
                 st.markdown("</div>", unsafe_allow_html=True)
-
-
-# ============================================================
-# RECORDS TAB
-# ============================================================
-with tab2:
-
-    left, right = st.columns([3, 1])
-
-    with left:
-        st.markdown(
-            f'<div class="section-title">🗂️ Tender Records <span style="color:#64748b;font-weight:500;">({len(filtered_df):,})</span></div>',
-            unsafe_allow_html=True,
-        )
-
-    with right:
-        st.download_button(
-            "⬇️ Export CSV",
-            data=filtered_df.to_csv(index=False).encode("utf-8"),
-            file_name="filtered_odisha_tenders.csv",
-            mime="text/csv",
-            use_container_width=True,
-        )
-
-    cols_to_hide = ["State", "Source Portal"]
-    display_df = (
-        filtered_df
-        .drop(columns=cols_to_hide, errors="ignore")
-        .dropna(axis=1, how="all")
-    )
-
-    column_configs = {}
-
-    if "Link" in display_df.columns:
-        column_configs["Link"] = st.column_config.LinkColumn(
-            "Document",
-            display_text="🔗 Open Tender",
-        )
-
-    if "Summary" in display_df.columns:
-        column_configs["Summary"] = st.column_config.TextColumn(
-            "Summary",
-            help="Click the cell to inspect the tender summary.",
-            width="large",
-        )
-
-    if "Published Date" in display_df.columns:
-        column_configs["Published Date"] = st.column_config.DatetimeColumn(
-            "Published",
-            format="DD MMM YYYY",
-        )
-
-    if "Opening Date" in display_df.columns:
-        column_configs["Opening Date"] = st.column_config.DatetimeColumn(
-            "Opening",
-            format="DD MMM YYYY",
-        )
-
-    if "Closing Date" in display_df.columns:
-        column_configs["Closing Date"] = st.column_config.DatetimeColumn(
-            "Closing",
-            format="DD MMM YYYY",
-        )
-
-    if "Tender Value" in display_df.columns:
-        column_configs["Tender Value"] = st.column_config.NumberColumn(
-            "Tender Value",
-            format="₹ %.0f",
-        )
-
-    st.dataframe(
-        display_df,
-        column_config=column_configs,
-        hide_index=True,
-        use_container_width=True,
-        height=620,
-        selection_mode="single-row",
-        on_select="ignore",
-    )
 
 
 # ============================================================
