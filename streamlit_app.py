@@ -43,6 +43,15 @@ css = """
 /* Hide Sidebar toggle */
 [data-testid="collapsedControl"] { display: none; }
 
+/* ---------- Filter Labels (Make them small and dark blue) ---------- */
+.stTextInput label p, .stMultiSelect label p, .stDateInput label p {
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    color: #020617 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
 /* ---------- KPI cards ---------- */
 .kpi-card {
     background: white; border: 1px solid #e2e8f0; border-radius: 12px;
@@ -146,7 +155,7 @@ if df.empty:
 
 
 # ============================================================
-# CUSTOM HERO HEADER (Right Bottom Anchored)
+# CUSTOM HERO HEADER 
 # ============================================================
 header_html = f"""
 <div style="
@@ -161,10 +170,8 @@ header_html = f"""
     overflow: hidden;
     font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 ">
-    <!-- Left side gradient overlay to ensure text readability -->
     <div style="position: absolute; top:0; left:0; width: 60%; height: 100%; background: linear-gradient(90deg, #020617 10%, transparent 100%);"></div>
     
-    <!-- Left Text Content Only -->
     <div style="position: absolute; top: 100px; left: 40px; color: white;">
         <div style="font-size: 0.85rem; font-weight: 700; letter-spacing: 2px; color: #bfdbfe; margin-bottom: 8px; text-transform: uppercase;">Odisha Government Procurement</div>
         <h1 style="font-size: 2.8rem; font-weight: 800; margin: 0; line-height: 1.1; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
@@ -215,43 +222,31 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 
 # ============================================================
-# FILTER BAR (In TWO rows to keep labels visible)
+# SINGLE-ROW FILTER BAR
 # ============================================================
-st.markdown("### 🔍 Filter Opportunities")
+# Custom dark blue header matching your background image
+st.markdown("<h4 style='color: #020617; font-size: 1.15rem; font-weight: 800; margin-bottom: -5px;'>🔍 Filter Opportunities</h4>", unsafe_allow_html=True)
 
-# ROW 1: Dropdowns and Search
-f1, f2, f3, f4 = st.columns(4)
+# 6 Equal columns all perfectly aligned in one single row
+f1, f2, f3, f4, f5, f6 = st.columns(6)
+
 with f1:
-    search_query = st.text_input("Keyword Search", placeholder="Title, ID, or Summary...")
+    search_query = st.text_input("Keyword Search", placeholder="Title, ID...")
 with f2:
     sources = [d for d in df["Source Portal"].dropna().unique().tolist() if str(d).strip()] if "Source Portal" in df.columns else []
-    selected_sources = st.multiselect("Source Portal", options=sorted(sources), placeholder="All Portals")
+    selected_sources = st.multiselect("Source Portal", options=sorted(sources), placeholder="All")
 with f3:
     districts = [d for d in df["District"].dropna().unique().tolist() if str(d).strip()] if "District" in df.columns else []
-    selected_districts = st.multiselect("District", options=sorted(districts), placeholder="All Districts")
+    selected_districts = st.multiselect("District", options=sorted(districts), placeholder="All")
 with f4:
     depts = [d for d in df["Department"].dropna().unique().tolist() if str(d).strip()] if "Department" in df.columns else []
-    selected_depts = st.multiselect("Department", options=sorted(depts), placeholder="All Departments")
-
-# ROW 2: Dates only
-st.markdown("<div style='margin-top: 5px;'></div>", unsafe_allow_html=True)
-d1, d2, d3 = st.columns([1, 1, 2])
-
-with d1:
-    min_open, max_open = None, None
-    selected_open_date = []
-    if "Opening Date" in df.columns and not df["Opening Date"].dropna().empty:
-        min_open = df["Opening Date"].min().date()
-        max_open = df["Opening Date"].max().date()
-        selected_open_date = st.date_input("Opening Date Range", value=(min_open, max_open), min_value=min_open, max_value=max_open)
-
-with d2:
-    min_close, max_close = None, None
-    selected_close_date = []
-    if "Closing Date" in df.columns and not df["Closing Date"].dropna().empty:
-        min_close = df["Closing Date"].min().date()
-        max_close = df["Closing Date"].max().date()
-        selected_close_date = st.date_input("Closing Date Range", value=(min_close, max_close), min_value=min_close, max_value=max_close)
+    selected_depts = st.multiselect("Department", options=sorted(depts), placeholder="All")
+with f5:
+    # Single Date Selector (No default value so it starts empty)
+    selected_open_date = st.date_input("Opening (After)", value=None)
+with f6:
+    # Single Date Selector (No default value so it starts empty)
+    selected_close_date = st.date_input("Closing (Before)", value=None)
 
 
 # ============================================================
@@ -269,17 +264,13 @@ if selected_sources: filtered_df = filtered_df[filtered_df["Source Portal"].isin
 if selected_districts: filtered_df = filtered_df[filtered_df["District"].isin(selected_districts)]
 if selected_depts: filtered_df = filtered_df[filtered_df["Department"].isin(selected_depts)]
 
-# Filter Opening Date
-if len(selected_open_date) == 2:
-    start_o, end_o = selected_open_date
-    if start_o != min_open or end_o != max_open:
-        filtered_df = filtered_df[(filtered_df["Opening Date"].dt.date >= start_o) & (filtered_df["Opening Date"].dt.date <= end_o)]
+# Filter Opening Date (Show tenders opening on or AFTER the chosen date)
+if selected_open_date:
+    filtered_df = filtered_df[(filtered_df["Opening Date"].notna()) & (filtered_df["Opening Date"].dt.date >= selected_open_date)]
 
-# Filter Closing Date
-if len(selected_close_date) == 2:
-    start_c, end_c = selected_close_date
-    if start_c != min_close or end_c != max_close:
-        filtered_df = filtered_df[(filtered_df["Closing Date"].dt.date >= start_c) & (filtered_df["Closing Date"].dt.date <= end_c)]
+# Filter Closing Date (Show tenders closing on or BEFORE the chosen date)
+if selected_close_date:
+    filtered_df = filtered_df[(filtered_df["Closing Date"].notna()) & (filtered_df["Closing Date"].dt.date <= selected_close_date)]
 
 
 # ============================================================
