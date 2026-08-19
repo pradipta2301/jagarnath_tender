@@ -28,67 +28,68 @@ def get_base64_of_bin_file(bin_file):
     except:
         return ""
 
-# Loading the main background image
-bg_image_b64 = get_base64_of_bin_file("Gemini_Generated_Image_wpx7u6wpx7u6wpx7.png")
+# Load the integrated banner image
+bg_image_b64 = get_base64_of_bin_file("Gemini_Generated_Image.png")
 
 # ============================================================
 # PREMIUM UI / CSS
 # ============================================================
-st.markdown(textwrap.dedent("""
-    <style>
-    /* ---------- Global ---------- */
-    .stApp { background-color: #f8fafc; }
-    .block-container { padding-top: 1.2rem !important; padding-bottom: 2rem !important; max-width: 1600px; }
+css = """
+<style>
+/* ---------- Global ---------- */
+.stApp { background-color: #f8fafc; }
+.block-container { padding-top: 1.2rem !important; padding-bottom: 2rem !important; max-width: 1600px; }
 
-    /* Hide Sidebar toggle */
-    [data-testid="collapsedControl"] { display: none; }
+/* Hide Sidebar toggle */
+[data-testid="collapsedControl"] { display: none; }
 
-    /* ---------- KPI cards ---------- */
-    .kpi-card {
-        background: white; border: 1px solid #e2e8f0; border-radius: 12px;
-        padding: 15px; min-height: 90px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-        display: flex; flex-direction: column; justify-content: center;
-    }
-    .kpi-icon { font-size: 1.2rem; margin-bottom: 5px; }
-    .kpi-label { font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-    .kpi-value { font-size: 1.6rem; color: #0f172a; font-weight: 800; line-height: 1.2; }
-    .kpi-blue { border-top: 4px solid #2563eb; }
-    .kpi-green { border-top: 4px solid #16a34a; }
-    .kpi-orange { border-top: 4px solid #f59e0b; }
-    .kpi-cyan { border-top: 4px solid #0891b2; }
+/* ---------- KPI cards ---------- */
+.kpi-card {
+    background: white; border: 1px solid #e2e8f0; border-radius: 12px;
+    padding: 15px; min-height: 90px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    display: flex; flex-direction: column; justify-content: center;
+}
+.kpi-icon { font-size: 1.2rem; margin-bottom: 5px; }
+.kpi-label { font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.kpi-value { font-size: 1.6rem; color: #0f172a; font-weight: 800; line-height: 1.2; }
+.kpi-blue { border-top: 4px solid #2563eb; }
+.kpi-green { border-top: 4px solid #16a34a; }
+.kpi-orange { border-top: 4px solid #f59e0b; }
+.kpi-cyan { border-top: 4px solid #0891b2; }
 
-    /* ---------- Tender Cards (SaaS Feed UI) ---------- */
-    .tender-card {
-        background: white; border-radius: 12px; padding: 20px 24px;
-        margin-bottom: 16px; border: 1px solid #e2e8f0; border-left: 5px solid #2563eb;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.03); transition: all 0.2s ease;
-    }
-    .tender-card:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
-    .tc-dept { font-size: 0.85rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;}
-    .tc-title { font-size: 1.25rem; font-weight: 700; color: #0f172a; margin-bottom: 10px; line-height: 1.4; }
-    .tc-meta { font-size: 0.85rem; color: #475569; margin-bottom: 12px; display: flex; gap: 15px; align-items: center; }
-    .tc-tag { background: #f1f5f9; padding: 6px 12px; border-radius: 8px; font-weight: 600; color: #334155; display: inline-block; line-height: 1.4; }
-    .tc-loc { font-size: 0.9rem; color: #334155; background: #f8fafc; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #f1f5f9;}
-    .tc-summary { font-size: 0.95rem; color: #475569; margin-bottom: 18px; line-height: 1.5; }
-    .tc-grid { 
-        display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 10px; 
-        align-items: center; background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #f1f5f9;
-    }
-    .tc-stat-label { font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; margin-bottom: 2px;}
-    .tc-stat-val { font-size: 0.95rem; color: #0f172a; font-weight: 700; }
-    .tc-btn { 
-        background: #2563eb; color: white !important; padding: 10px 20px; 
-        border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.9rem; transition: 0.2s;
-        display: inline-block;
-    }
-    .tc-btn:hover { background: #1d4ed8; }
+/* ---------- Tender Cards (SaaS Feed UI) ---------- */
+.tender-card {
+    background: white; border-radius: 12px; padding: 20px 24px;
+    margin-bottom: 16px; border: 1px solid #e2e8f0; border-left: 5px solid #2563eb;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.03); transition: all 0.2s ease;
+}
+.tender-card:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+.tc-dept { font-size: 0.85rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;}
+.tc-title { font-size: 1.25rem; font-weight: 700; color: #0f172a; margin-bottom: 10px; line-height: 1.4; }
+.tc-meta { font-size: 0.85rem; color: #475569; margin-bottom: 12px; display: flex; gap: 15px; align-items: center; }
+.tc-tag { background: #f1f5f9; padding: 6px 12px; border-radius: 8px; font-weight: 600; color: #334155; display: inline-block; line-height: 1.4; }
+.tc-loc { font-size: 0.9rem; color: #334155; background: #f8fafc; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #f1f5f9;}
+.tc-summary { font-size: 0.95rem; color: #475569; margin-bottom: 18px; line-height: 1.5; }
+.tc-grid { 
+    display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 10px; 
+    align-items: center; background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #f1f5f9;
+}
+.tc-stat-label { font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; margin-bottom: 2px;}
+.tc-stat-val { font-size: 0.95rem; color: #0f172a; font-weight: 700; }
+.tc-btn { 
+    background: #2563eb; color: white !important; padding: 10px 20px; 
+    border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.9rem; transition: 0.2s;
+    display: inline-block;
+}
+.tc-btn:hover { background: #1d4ed8; }
 
-    /* Tabs overriding */
-    button[data-baseweb="tab"] { font-weight: 700 !important; opacity: 1 !important; font-size: 1.1rem !important; }
-    button[data-baseweb="tab"][aria-selected="true"] { color: #2563eb !important; }
-    </style>
-"""), unsafe_allow_html=True)
+/* Tabs overriding */
+button[data-baseweb="tab"] { font-weight: 700 !important; opacity: 1 !important; font-size: 1.1rem !important; }
+button[data-baseweb="tab"][aria-selected="true"] { color: #2563eb !important; }
+</style>
+"""
+st.markdown(css.replace('\n', ' '), unsafe_allow_html=True)
 
 
 # ============================================================
@@ -145,17 +146,17 @@ if df.empty:
 
 
 # ============================================================
-# CUSTOM SVE HERO HEADER 
+# CUSTOM HERO HEADER (Right Bottom Anchored)
 # ============================================================
-header_html = textwrap.dedent(f"""
+header_html = f"""
 <div style="
     position: relative; 
-    height: 350px; 
+    height: 400px; 
     border-radius: 20px; 
     margin-bottom: 25px;
     background-image: url('data:image/png;base64,{bg_image_b64}'); 
     background-size: cover; 
-    background-position: center right;
+    background-position: right bottom; 
     box-shadow: 0 10px 30px rgba(0,0,0,0.15);
     overflow: hidden;
     font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -163,8 +164,8 @@ header_html = textwrap.dedent(f"""
     <!-- Left side gradient overlay to ensure text readability -->
     <div style="position: absolute; top:0; left:0; width: 60%; height: 100%; background: linear-gradient(90deg, #020617 10%, transparent 100%);"></div>
     
-    <!-- Left Text Content -->
-    <div style="position: absolute; top: 85px; left: 40px; color: white;">
+    <!-- Left Text Content Only -->
+    <div style="position: absolute; top: 100px; left: 40px; color: white;">
         <div style="font-size: 0.85rem; font-weight: 700; letter-spacing: 2px; color: #bfdbfe; margin-bottom: 8px; text-transform: uppercase;">Odisha Government Procurement</div>
         <h1 style="font-size: 2.8rem; font-weight: 800; margin: 0; line-height: 1.1; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
             Tender Intelligence <span style="color: #fbbf24;">Dashboard</span>
@@ -178,19 +179,9 @@ header_html = textwrap.dedent(f"""
             <span style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 20px; font-size: 0.8rem;">🎯 Advanced Filtering</span>
         </div>
     </div>
-
-    <!-- SVE Text - Pushed down to the bottom edge -->
-    <div style="position: absolute; bottom: 12px; right: 55px; text-align: center; text-shadow: 0px 4px 8px rgba(0,0,0,0.8);">
-        <div style="font-size: 1.35rem; font-weight: 700; letter-spacing: 1.5px; margin-bottom: 4px;">
-            <span style="color: #fbbf24;">Shree Venkatesh</span> <span style="color: #f8fafc;">Enterprisers</span>
-        </div>
-        <div style="font-size: 0.75rem; font-weight: 600; color: #e2e8f0; letter-spacing: 4px;">
-            <span style="color: #fbbf24;">&mdash;</span> TRUST | QUALITY | COMMITMENT <span style="color: #fbbf24;">&mdash;</span>
-        </div>
-    </div>
 </div>
-""")
-st.markdown(header_html, unsafe_allow_html=True)
+"""
+st.markdown(header_html.replace('\n', ' '), unsafe_allow_html=True)
 
 
 # ============================================================
@@ -224,12 +215,12 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 
 # ============================================================
-# HORIZONTAL FILTER BAR
+# FILTER BAR (In TWO rows to keep labels visible)
 # ============================================================
 st.markdown("### 🔍 Filter Opportunities")
 
-f1, f2, f3, f4, f5 = st.columns(5)
-
+# ROW 1: Dropdowns and Search
+f1, f2, f3, f4 = st.columns(4)
 with f1:
     search_query = st.text_input("Keyword Search", placeholder="Title, ID, or Summary...")
 with f2:
@@ -241,7 +232,20 @@ with f3:
 with f4:
     depts = [d for d in df["Department"].dropna().unique().tolist() if str(d).strip()] if "Department" in df.columns else []
     selected_depts = st.multiselect("Department", options=sorted(depts), placeholder="All Departments")
-with f5:
+
+# ROW 2: Dates only
+st.markdown("<div style='margin-top: 5px;'></div>", unsafe_allow_html=True)
+d1, d2, d3 = st.columns([1, 1, 2])
+
+with d1:
+    min_open, max_open = None, None
+    selected_open_date = []
+    if "Opening Date" in df.columns and not df["Opening Date"].dropna().empty:
+        min_open = df["Opening Date"].min().date()
+        max_open = df["Opening Date"].max().date()
+        selected_open_date = st.date_input("Opening Date Range", value=(min_open, max_open), min_value=min_open, max_value=max_open)
+
+with d2:
     min_close, max_close = None, None
     selected_close_date = []
     if "Closing Date" in df.columns and not df["Closing Date"].dropna().empty:
@@ -264,6 +268,14 @@ if search_query:
 if selected_sources: filtered_df = filtered_df[filtered_df["Source Portal"].isin(selected_sources)]
 if selected_districts: filtered_df = filtered_df[filtered_df["District"].isin(selected_districts)]
 if selected_depts: filtered_df = filtered_df[filtered_df["Department"].isin(selected_depts)]
+
+# Filter Opening Date
+if len(selected_open_date) == 2:
+    start_o, end_o = selected_open_date
+    if start_o != min_open or end_o != max_open:
+        filtered_df = filtered_df[(filtered_df["Opening Date"].dt.date >= start_o) & (filtered_df["Opening Date"].dt.date <= end_o)]
+
+# Filter Closing Date
 if len(selected_close_date) == 2:
     start_c, end_c = selected_close_date
     if start_c != min_close or end_c != max_close:
