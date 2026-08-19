@@ -43,7 +43,7 @@ css = """
 /* Hide Sidebar toggle */
 [data-testid="collapsedControl"] { display: none; }
 
-/* ---------- Filter Labels (Make them small and dark blue) ---------- */
+/* ---------- Filter Labels ---------- */
 .stTextInput label p, .stMultiSelect label p, .stDateInput label p {
     font-size: 0.75rem !important;
     font-weight: 700 !important;
@@ -79,7 +79,10 @@ css = """
 .tc-meta { font-size: 0.85rem; color: #475569; margin-bottom: 12px; display: flex; gap: 15px; align-items: center; }
 .tc-tag { background: #f1f5f9; padding: 6px 12px; border-radius: 8px; font-weight: 600; color: #334155; display: inline-block; line-height: 1.4; }
 .tc-loc { font-size: 0.9rem; color: #334155; background: #f8fafc; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #f1f5f9;}
-.tc-summary { font-size: 0.95rem; color: #475569; margin-bottom: 18px; line-height: 1.5; }
+
+/* Updated Summary text to be dark gray and slightly bolder */
+.tc-summary { font-size: 0.95rem; color: #1e293b; margin-bottom: 18px; line-height: 1.5; font-weight: 500; }
+
 .tc-grid { 
     display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 10px; 
     align-items: center; background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #f1f5f9;
@@ -155,7 +158,7 @@ if df.empty:
 
 
 # ============================================================
-# CUSTOM HERO HEADER 
+# CUSTOM HERO HEADER
 # ============================================================
 header_html = f"""
 <div style="
@@ -192,42 +195,18 @@ st.markdown(header_html.replace('\n', ' '), unsafe_allow_html=True)
 
 
 # ============================================================
-# KPI CARDS
+# KPI CARDS PLACEHOLDER
 # ============================================================
-total_tenders = len(df)
-today = datetime.now().date()
-active_count = 0
-if not df.empty:
-    is_opened = pd.Series(True, index=df.index)
-    if "Opening Date" in df.columns:
-        is_opened = (df["Opening Date"].dt.date <= today)
-        if "Published Date" in df.columns:
-            is_opened |= (df["Opening Date"].isna() & (df["Published Date"].dt.date <= today))
-    if "Closing Date" in df.columns:
-        is_active = is_opened & (df["Closing Date"].isna() | (df["Closing Date"].dt.date >= today))
-        active_count = int(is_active.sum())
-    else:
-        active_count = int(is_opened.sum())
-
-dist_count = df["District"].nunique() if "District" in df.columns else 0
-total_value = df["Tender Value"].sum() if "Tender Value" in df.columns else 0
-
-k1, k2, k3, k4 = st.columns(4)
-with k1: st.markdown(f'<div class="kpi-card kpi-blue"><div class="kpi-icon">📋</div><div class="kpi-label">Total Tenders</div><div class="kpi-value">{total_tenders:,}</div></div>', unsafe_allow_html=True)
-with k2: st.markdown(f'<div class="kpi-card kpi-green"><div class="kpi-icon">🟢</div><div class="kpi-label">Active Tenders</div><div class="kpi-value">{active_count:,}</div></div>', unsafe_allow_html=True)
-with k3: st.markdown(f'<div class="kpi-card kpi-orange"><div class="kpi-icon">📍</div><div class="kpi-label">Districts Covered</div><div class="kpi-value">{dist_count:,}</div></div>', unsafe_allow_html=True)
-with k4: st.markdown(f'<div class="kpi-card kpi-cyan"><div class="kpi-icon">💰</div><div class="kpi-label">Total Pipeline Value</div><div class="kpi-value">₹{total_value / 10000000:,.1f} Cr</div></div>', unsafe_allow_html=True)
-
-st.markdown("<br>", unsafe_allow_html=True)
+# We create an empty container here so we can inject the KPI cards visually above the filters,
+# even though the math for the KPI cards is done below after the filters are processed!
+kpi_container = st.empty()
 
 
 # ============================================================
 # SINGLE-ROW FILTER BAR
 # ============================================================
-# Custom dark blue header matching your background image
 st.markdown("<h4 style='color: #020617; font-size: 1.15rem; font-weight: 800; margin-bottom: -5px;'>🔍 Filter Opportunities</h4>", unsafe_allow_html=True)
 
-# 6 Equal columns all perfectly aligned in one single row
 f1, f2, f3, f4, f5, f6 = st.columns(6)
 
 with f1:
@@ -242,10 +221,8 @@ with f4:
     depts = [d for d in df["Department"].dropna().unique().tolist() if str(d).strip()] if "Department" in df.columns else []
     selected_depts = st.multiselect("Department", options=sorted(depts), placeholder="All")
 with f5:
-    # Single Date Selector (No default value so it starts empty)
     selected_open_date = st.date_input("Opening (After)", value=None)
 with f6:
-    # Single Date Selector (No default value so it starts empty)
     selected_close_date = st.date_input("Closing (Before)", value=None)
 
 
@@ -264,19 +241,51 @@ if selected_sources: filtered_df = filtered_df[filtered_df["Source Portal"].isin
 if selected_districts: filtered_df = filtered_df[filtered_df["District"].isin(selected_districts)]
 if selected_depts: filtered_df = filtered_df[filtered_df["Department"].isin(selected_depts)]
 
-# Filter Opening Date (Show tenders opening on or AFTER the chosen date)
 if selected_open_date:
     filtered_df = filtered_df[(filtered_df["Opening Date"].notna()) & (filtered_df["Opening Date"].dt.date >= selected_open_date)]
 
-# Filter Closing Date (Show tenders closing on or BEFORE the chosen date)
 if selected_close_date:
     filtered_df = filtered_df[(filtered_df["Closing Date"].notna()) & (filtered_df["Closing Date"].dt.date <= selected_close_date)]
 
 
 # ============================================================
+# CALCULATE & RENDER KPI CARDS
+# ============================================================
+# Now that we have our `filtered_df`, we inject the cards back into the placeholder at the top!
+with kpi_container.container():
+    # Total Tenders ALWAYS stays static based on the original `df`
+    total_tenders = len(df)
+    
+    # Active, District, and Value are DYNAMIC based on `filtered_df`
+    today = datetime.now().date()
+    active_count = 0
+    if not filtered_df.empty:
+        is_opened = pd.Series(True, index=filtered_df.index)
+        if "Opening Date" in filtered_df.columns:
+            is_opened = (filtered_df["Opening Date"].dt.date <= today)
+            if "Published Date" in filtered_df.columns:
+                is_opened |= (filtered_df["Opening Date"].isna() & (filtered_df["Published Date"].dt.date <= today))
+        if "Closing Date" in filtered_df.columns:
+            is_active = is_opened & (filtered_df["Closing Date"].isna() | (filtered_df["Closing Date"].dt.date >= today))
+            active_count = int(is_active.sum())
+        else:
+            active_count = int(is_opened.sum())
+
+    dist_count = filtered_df["District"].nunique() if "District" in filtered_df.columns else 0
+    total_value = filtered_df["Tender Value"].sum() if "Tender Value" in filtered_df.columns else 0
+
+    k1, k2, k3, k4 = st.columns(4)
+    with k1: st.markdown(f'<div class="kpi-card kpi-blue"><div class="kpi-icon">📋</div><div class="kpi-label">Total Tenders</div><div class="kpi-value">{total_tenders:,}</div></div>', unsafe_allow_html=True)
+    with k2: st.markdown(f'<div class="kpi-card kpi-green"><div class="kpi-icon">🟢</div><div class="kpi-label">Active Tenders</div><div class="kpi-value">{active_count:,}</div></div>', unsafe_allow_html=True)
+    with k3: st.markdown(f'<div class="kpi-card kpi-orange"><div class="kpi-icon">📍</div><div class="kpi-label">Districts Covered</div><div class="kpi-value">{dist_count:,}</div></div>', unsafe_allow_html=True)
+    with k4: st.markdown(f'<div class="kpi-card kpi-cyan"><div class="kpi-icon">💰</div><div class="kpi-label">Total Pipeline Value</div><div class="kpi-value">₹{total_value / 10000000:,.1f} Cr</div></div>', unsafe_allow_html=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+
+# ============================================================
 # TABS
 # ============================================================
-st.markdown("<br>", unsafe_allow_html=True)
 tab1, tab2 = st.tabs([f"🗂️ Tender Feed ({len(filtered_df)})", "📊 Analytics Dashboard"])
 
 # ============================================================
