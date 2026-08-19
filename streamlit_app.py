@@ -28,7 +28,6 @@ def get_base64_of_bin_file(bin_file):
     except:
         return ""
 
-# Load the integrated banner image
 bg_image_b64 = get_base64_of_bin_file("Gemini_Generated_Image.png")
 
 # ============================================================
@@ -44,7 +43,7 @@ css = """
 [data-testid="collapsedControl"] { display: none; }
 
 /* ---------- Filter Labels ---------- */
-.stTextInput label p, .stMultiSelect label p, .stDateInput label p {
+.stTextInput label p, .stMultiSelect label p, .stDateInput label p, .stSelectbox label p {
     font-size: 0.75rem !important;
     font-weight: 700 !important;
     color: #020617 !important;
@@ -67,7 +66,7 @@ css = """
 .kpi-orange { border-top: 4px solid #f59e0b; }
 .kpi-cyan { border-top: 4px solid #0891b2; }
 
-/* ---------- Revolving Animation for Total Tenders ---------- */
+/* ---------- Revolving Animation ---------- */
 .revolving-container { position: relative; height: 50px; overflow: hidden; }
 .revolve-item { position: absolute; width: 100%; top: 0; left: 0; animation: flip 6s infinite ease-in-out; }
 .item-2 { animation-delay: 3s; opacity: 0; transform: translateY(15px); }
@@ -86,7 +85,16 @@ css = """
     box-shadow: 0 4px 10px rgba(0,0,0,0.03); transition: all 0.2s ease;
 }
 .tender-card:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
-.tc-dept { font-size: 0.85rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;}
+.tc-dept-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.tc-dept { font-size: 0.85rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* Urgency Badges */
+.badge-red { background: #fee2e2; color: #dc2626; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem; }
+.badge-light-red { background: #ffedd5; color: #ea580c; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem; }
+.badge-yellow { background: #fef9c3; color: #ca8a04; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem; }
+.badge-green { background: #dcfce7; color: #16a34a; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem; }
+.badge-gray { background: #f1f5f9; color: #64748b; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem; }
+
 .tc-title { font-size: 1.25rem; font-weight: 700; color: #0f172a; margin-bottom: 10px; line-height: 1.4; }
 .tc-meta { font-size: 0.85rem; color: #475569; margin-bottom: 12px; display: flex; gap: 15px; align-items: center; }
 .tc-tag { background: #f1f5f9; padding: 6px 12px; border-radius: 8px; font-weight: 600; color: #334155; display: inline-block; line-height: 1.4; }
@@ -210,11 +218,11 @@ kpi_container = st.empty()
 
 
 # ============================================================
-# SINGLE-ROW FILTER BAR
+# FILTER BAR (Single Row + Status Filter)
 # ============================================================
 st.markdown("<h4 style='color: #020617; font-size: 1.15rem; font-weight: 800; margin-bottom: -5px;'>🔍 Filter Opportunities</h4>", unsafe_allow_html=True)
 
-f1, f2, f3, f4, f5, f6 = st.columns(6)
+f1, f2, f3, f4, f5, f6, f7 = st.columns(7)
 
 with f1:
     search_query = st.text_input("Keyword Search", placeholder="Title, ID...")
@@ -226,17 +234,48 @@ with f3:
     selected_districts = st.multiselect("District", options=sorted(districts), placeholder="All Districts")
 with f4:
     depts = [d for d in df["Department"].dropna().unique().tolist() if str(d).strip()] if "Department" in df.columns else []
-    selected_depts = st.multiselect("Department", options=sorted(depts), placeholder="All Departments")
+    selected_depts = st.multiselect("Department", options=sorted(depts), placeholder="All Depts")
 with f5:
-    selected_open_date = st.date_input("Opening (After)", value=None)
+    status_filter = st.selectbox("Status", options=["All", "Active Only", "Expired Only"])
 with f6:
+    selected_open_date = st.date_input("Opening (After)", value=None)
+with f7:
     selected_close_date = st.date_input("Closing (Before)", value=None)
 
 
 # ============================================================
-# APPLY FILTERS
+# APPLY FILTERS & URGENCY LOGIC
 # ============================================================
 filtered_df = df.copy()
+today_dt = datetime.now().date()
+
+# Helper function to compute days left and urgency
+def get_urgency_info(closing_date):
+    if pd.isna(closing_date):
+        return 9999, "No Closing Date", "badge-gray"
+    
+    delta = (closing_date.date() - today_dt).days
+    
+    if delta < 0:
+        return delta, f"{-delta} days expired", "badge-gray"
+    elif delta <= 2:
+        return delta, f"{delta} days left", "badge-red"
+    elif delta <= 5:
+        return delta, f"{delta} days left", "badge-light-red"
+    elif delta <= 7:
+        return delta, f"{delta} days left", "badge-yellow"
+    else:
+        return delta, f"{delta} days left", "badge-green"
+
+# Calculate Days Left & Status for all rows
+filtered_df['days_left'], filtered_df['urgency_text'], filtered_df['badge_class'] = zip(*filtered_df['Closing Date'].map(get_urgency_info))
+filtered_df['is_expired'] = filtered_df['days_left'] < 0
+
+# Status Filter (Active vs Expired)
+if status_filter == "Active Only":
+    filtered_df = filtered_df[~filtered_df['is_expired']]
+elif status_filter == "Expired Only":
+    filtered_df = filtered_df[filtered_df['is_expired']]
 
 if search_query:
     search_mask = (filtered_df["Title"].astype(str).str.contains(search_query, case=False, na=False) | filtered_df["Tender No"].astype(str).str.contains(search_query, case=False, na=False))
@@ -254,6 +293,10 @@ if selected_open_date:
 if selected_close_date:
     filtered_df = filtered_df[(filtered_df["Closing Date"].notna()) & (filtered_df["Closing Date"].dt.date <= selected_close_date)]
 
+# SMART SORTING: Active tenders sorted by soonest closing date first. Expired pushed to bottom.
+filtered_df['sort_helper'] = filtered_df['days_left'].apply(lambda x: 999999 if x < 0 else x)
+filtered_df = filtered_df.sort_values(by=['sort_helper', 'Closing Date'], ascending=[True, True])
+
 
 # ============================================================
 # CALCULATE & RENDER KPI CARDS
@@ -261,26 +304,28 @@ if selected_close_date:
 with kpi_container.container():
     total_tenders = len(df)
     
-    today = datetime.now().date()
-    active_count = 0
-    if not filtered_df.empty:
-        is_opened = pd.Series(True, index=filtered_df.index)
-        if "Opening Date" in filtered_df.columns:
-            is_opened = (filtered_df["Opening Date"].dt.date <= today)
-            if "Published Date" in filtered_df.columns:
-                is_opened |= (filtered_df["Opening Date"].isna() & (filtered_df["Published Date"].dt.date <= today))
-        if "Closing Date" in filtered_df.columns:
-            is_active = is_opened & (filtered_df["Closing Date"].isna() | (filtered_df["Closing Date"].dt.date >= today))
-            active_count = int(is_active.sum())
-        else:
-            active_count = int(is_opened.sum())
+    # Global Active Count for Database vs Filtered
+    def calc_active_count(dataset):
+        if dataset.empty: return 0
+        is_opened = pd.Series(True, index=dataset.index)
+        if "Opening Date" in dataset.columns:
+            is_opened = (dataset["Opening Date"].dt.date <= today_dt)
+            if "Published Date" in dataset.columns:
+                is_opened |= (dataset["Opening Date"].isna() & (dataset["Published Date"].dt.date <= today_dt))
+        if "Closing Date" in dataset.columns:
+            is_active = is_opened & (dataset["Closing Date"].isna() | (dataset["Closing Date"].dt.date >= today_dt))
+            return int(is_active.sum())
+        return int(is_opened.sum())
+
+    total_active_db = calc_active_count(df)
+    filtered_active_count = calc_active_count(filtered_df)
 
     dist_count = filtered_df["District"].nunique() if "District" in filtered_df.columns else 0
     total_value = filtered_df["Tender Value"].sum() if "Tender Value" in filtered_df.columns else 0
 
     k1, k2, k3, k4 = st.columns(4)
     
-    # 🌟 THE NEW REVOLVING CARD
+    # Total Tenders Revolving Card
     with k1: 
         st.markdown(f'''
         <div class="kpi-card kpi-blue">
@@ -297,8 +342,25 @@ with kpi_container.container():
             </div>
         </div>
         '''.replace('\n', ' '), unsafe_allow_html=True)
-        
-    with k2: st.markdown(f'<div class="kpi-card kpi-green"><div class="kpi-icon">🟢</div><div class="kpi-label">Active Tenders</div><div class="kpi-value">{active_count:,}</div></div>', unsafe_allow_html=True)
+
+    # Active Tenders Revolving Card
+    with k2: 
+        st.markdown(f'''
+        <div class="kpi-card kpi-green">
+            <div class="kpi-icon">🟢</div>
+            <div class="revolving-container">
+                <div class="revolve-item item-1">
+                    <div class="kpi-label">Filtered Active</div>
+                    <div class="kpi-value">{filtered_active_count:,}</div>
+                </div>
+                <div class="revolve-item item-2">
+                    <div class="kpi-label">Total Active in DB</div>
+                    <div class="kpi-value">{total_active_db:,}</div>
+                </div>
+            </div>
+        </div>
+        '''.replace('\n', ' '), unsafe_allow_html=True)
+
     with k3: st.markdown(f'<div class="kpi-card kpi-orange"><div class="kpi-icon">📍</div><div class="kpi-label">Districts Covered</div><div class="kpi-value">{dist_count:,}</div></div>', unsafe_allow_html=True)
     with k4: st.markdown(f'<div class="kpi-card kpi-cyan"><div class="kpi-icon">💰</div><div class="kpi-label">Total Pipeline Value</div><div class="kpi-value">₹{total_value / 10000000:,.1f} Cr</div></div>', unsafe_allow_html=True)
 
@@ -346,11 +408,17 @@ with tab1:
             opn_str = opn_d.strftime('%d %b %Y') if pd.notnull(opn_d) else "N/A"
             cls_str = cls_d.strftime('%d %b %Y') if pd.notnull(cls_d) else "N/A"
             
+            urgency_text = row.get('urgency_text', '')
+            badge_class = row.get('badge_class', 'badge-gray')
+            
             title_html = f'<div class="tc-title">{title}</div>' if title.strip().lower() != category.strip().lower() else ''
             
             card = f"""
             <div class="tender-card">
-                <div class="tc-dept">{dept}</div>
+                <div class="tc-dept-row">
+                    <div class="tc-dept">{dept}</div>
+                    <div class="{badge_class}">{urgency_text}</div>
+                </div>
                 {title_html}
                 <div class="tc-meta">
                     <span class="tc-tag">🏷️ {category}</span>
