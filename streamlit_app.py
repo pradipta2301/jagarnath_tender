@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import os
 import base64
+import textwrap
 from datetime import datetime
 
 # ============================================================
@@ -27,67 +28,67 @@ def get_base64_of_bin_file(bin_file):
     except:
         return ""
 
-# Only loading the one main background image now
+# Loading the main background image
 bg_image_b64 = get_base64_of_bin_file("Gemini_Generated_Image_wpx7u6wpx7u6wpx7.png")
 
 # ============================================================
 # PREMIUM UI / CSS
 # ============================================================
-st.markdown("""
-<style>
-/* ---------- Global ---------- */
-.stApp { background-color: #f8fafc; }
-.block-container { padding-top: 1.2rem !important; padding-bottom: 2rem !important; max-width: 1600px; }
+st.markdown(textwrap.dedent("""
+    <style>
+    /* ---------- Global ---------- */
+    .stApp { background-color: #f8fafc; }
+    .block-container { padding-top: 1.2rem !important; padding-bottom: 2rem !important; max-width: 1600px; }
 
-/* Hide Sidebar toggle */
-[data-testid="collapsedControl"] { display: none; }
+    /* Hide Sidebar toggle */
+    [data-testid="collapsedControl"] { display: none; }
 
-/* ---------- KPI cards ---------- */
-.kpi-card {
-    background: white; border: 1px solid #e2e8f0; border-radius: 12px;
-    padding: 15px; min-height: 90px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-    display: flex; flex-direction: column; justify-content: center;
-}
-.kpi-icon { font-size: 1.2rem; margin-bottom: 5px; }
-.kpi-label { font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-.kpi-value { font-size: 1.6rem; color: #0f172a; font-weight: 800; line-height: 1.2; }
-.kpi-blue { border-top: 4px solid #2563eb; }
-.kpi-green { border-top: 4px solid #16a34a; }
-.kpi-orange { border-top: 4px solid #f59e0b; }
-.kpi-cyan { border-top: 4px solid #0891b2; }
+    /* ---------- KPI cards ---------- */
+    .kpi-card {
+        background: white; border: 1px solid #e2e8f0; border-radius: 12px;
+        padding: 15px; min-height: 90px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        display: flex; flex-direction: column; justify-content: center;
+    }
+    .kpi-icon { font-size: 1.2rem; margin-bottom: 5px; }
+    .kpi-label { font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .kpi-value { font-size: 1.6rem; color: #0f172a; font-weight: 800; line-height: 1.2; }
+    .kpi-blue { border-top: 4px solid #2563eb; }
+    .kpi-green { border-top: 4px solid #16a34a; }
+    .kpi-orange { border-top: 4px solid #f59e0b; }
+    .kpi-cyan { border-top: 4px solid #0891b2; }
 
-/* ---------- Tender Cards (SaaS Feed UI) ---------- */
-.tender-card {
-    background: white; border-radius: 12px; padding: 20px 24px;
-    margin-bottom: 16px; border: 1px solid #e2e8f0; border-left: 5px solid #2563eb;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.03); transition: all 0.2s ease;
-}
-.tender-card:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
-.tc-dept { font-size: 0.85rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;}
-.tc-title { font-size: 1.25rem; font-weight: 700; color: #0f172a; margin-bottom: 10px; line-height: 1.4; }
-.tc-meta { font-size: 0.85rem; color: #475569; margin-bottom: 12px; display: flex; gap: 15px; align-items: center; }
-.tc-tag { background: #f1f5f9; padding: 4px 10px; border-radius: 999px; font-weight: 600; color: #334155; }
-.tc-loc { font-size: 0.9rem; color: #334155; background: #f8fafc; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #f1f5f9;}
-.tc-summary { font-size: 0.95rem; color: #475569; margin-bottom: 18px; line-height: 1.5; }
-.tc-grid { 
-    display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 10px; 
-    align-items: center; background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #f1f5f9;
-}
-.tc-stat-label { font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; margin-bottom: 2px;}
-.tc-stat-val { font-size: 0.95rem; color: #0f172a; font-weight: 700; }
-.tc-btn { 
-    background: #2563eb; color: white !important; padding: 10px 20px; 
-    border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.9rem; transition: 0.2s;
-    display: inline-block;
-}
-.tc-btn:hover { background: #1d4ed8; }
+    /* ---------- Tender Cards (SaaS Feed UI) ---------- */
+    .tender-card {
+        background: white; border-radius: 12px; padding: 20px 24px;
+        margin-bottom: 16px; border: 1px solid #e2e8f0; border-left: 5px solid #2563eb;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.03); transition: all 0.2s ease;
+    }
+    .tender-card:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+    .tc-dept { font-size: 0.85rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;}
+    .tc-title { font-size: 1.25rem; font-weight: 700; color: #0f172a; margin-bottom: 10px; line-height: 1.4; }
+    .tc-meta { font-size: 0.85rem; color: #475569; margin-bottom: 12px; display: flex; gap: 15px; align-items: center; }
+    .tc-tag { background: #f1f5f9; padding: 4px 10px; border-radius: 999px; font-weight: 600; color: #334155; }
+    .tc-loc { font-size: 0.9rem; color: #334155; background: #f8fafc; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #f1f5f9;}
+    .tc-summary { font-size: 0.95rem; color: #475569; margin-bottom: 18px; line-height: 1.5; }
+    .tc-grid { 
+        display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 10px; 
+        align-items: center; background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #f1f5f9;
+    }
+    .tc-stat-label { font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; margin-bottom: 2px;}
+    .tc-stat-val { font-size: 0.95rem; color: #0f172a; font-weight: 700; }
+    .tc-btn { 
+        background: #2563eb; color: white !important; padding: 10px 20px; 
+        border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.9rem; transition: 0.2s;
+        display: inline-block;
+    }
+    .tc-btn:hover { background: #1d4ed8; }
 
-/* Tabs overriding */
-button[data-baseweb="tab"] { font-weight: 700 !important; opacity: 1 !important; font-size: 1.1rem !important; }
-button[data-baseweb="tab"][aria-selected="true"] { color: #2563eb !important; }
-</style>
-""", unsafe_allow_html=True)
+    /* Tabs overriding */
+    button[data-baseweb="tab"] { font-weight: 700 !important; opacity: 1 !important; font-size: 1.1rem !important; }
+    button[data-baseweb="tab"][aria-selected="true"] { color: #2563eb !important; }
+    </style>
+"""), unsafe_allow_html=True)
 
 
 # ============================================================
@@ -144,9 +145,9 @@ if df.empty:
 
 
 # ============================================================
-# CUSTOM SVE HERO HEADER (Text-Based SVE Logo)
+# CUSTOM SVE HERO HEADER 
 # ============================================================
-header_html = f"""
+header_html = textwrap.dedent(f"""
 <div style="
     position: relative; 
     height: 320px; 
@@ -164,9 +165,7 @@ header_html = f"""
     
     <!-- Left Text Content -->
     <div style="position: absolute; top: 70px; left: 40px; color: white;">
-        <div style="font-size: 0.85rem; font-weight: 700; letter-spacing: 2px; color: #bfdbfe; margin-bottom: 8px; text-transform: uppercase;">
-            Odisha Government Procurement
-        </div>
+        <div style="font-size: 0.85rem; font-weight: 700; letter-spacing: 2px; color: #bfdbfe; margin-bottom: 8px; text-transform: uppercase;">Odisha Government Procurement</div>
         <h1 style="font-size: 2.8rem; font-weight: 800; margin: 0; line-height: 1.1; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
             Tender Intelligence <span style="color: #fbbf24;">Dashboard</span>
         </h1>
@@ -180,7 +179,7 @@ header_html = f"""
         </div>
     </div>
 
-    <!-- SVE Text (Replacing the second image) -->
+    <!-- SVE Text -->
     <div style="position: absolute; bottom: 35px; right: 55px; text-align: center; text-shadow: 0px 4px 6px rgba(0,0,0,0.4);">
         <div style="font-size: 1.5rem; font-weight: 600; letter-spacing: 1.5px; margin-bottom: 5px;">
             <span style="color: #f59e0b;">Shree Venkatesh</span> <span style="color: #e2e8f0;">Enterprisers</span>
@@ -190,7 +189,7 @@ header_html = f"""
         </div>
     </div>
 </div>
-"""
+""")
 st.markdown(header_html, unsafe_allow_html=True)
 
 
@@ -289,11 +288,9 @@ with tab1:
     if filtered_df.empty:
         st.info("No tenders match your current filters. Try adjusting your search.")
     else:
-        # Generate the HTML for all cards
         feed_html = ""
         
         for _, row in filtered_df.iterrows():
-            # Safely grab data
             t_no = str(row.get('Tender No', 'N/A'))
             title = str(row.get('Title', 'Untitled Tender'))
             dept = str(row.get('Department', 'Unknown Department'))
@@ -301,20 +298,17 @@ with tab1:
             category = str(row.get('Category', 'General'))
             link = str(row.get('Link', '#'))
             
-            # Smart Location formatting
             dist = str(row.get('District', 'Odisha')).strip()
             addr = str(row.get('Address', '')).strip()
             if len(addr) > 85: addr = addr[:85] + "..."
             if addr == "nan" or not addr: addr = "Location details in document."
             location_text = f"<b>{dist}</b> &mdash; {addr}"
             
-            # Financials
             val = row.get('Tender Value', 0)
             emd = row.get('EMD', 0)
             val_str = f"₹ {val:,.0f}" if val > 0 else "Refer Doc"
             emd_str = f"₹ {emd:,.0f}" if emd > 0 else "N/A"
             
-            # Dates
             pub_d = row.get('Published Date')
             opn_d = row.get('Opening Date')
             cls_d = row.get('Closing Date')
@@ -323,8 +317,8 @@ with tab1:
             opn_str = opn_d.strftime('%d %b %Y') if pd.notnull(opn_d) else "N/A"
             cls_str = cls_d.strftime('%d %b %Y') if pd.notnull(cls_d) else "N/A"
             
-            # Build Card HTML
-            card = f"""
+            # Using textwrap.dedent to prevent Markdown from turning it into a code block
+            card = textwrap.dedent(f"""
             <div class="tender-card">
                 <div class="tc-dept">{dept}</div>
                 <div class="tc-title">{title}</div>
@@ -347,10 +341,9 @@ with tab1:
                     </div>
                 </div>
             </div>
-            """
+            """)
             feed_html += card
             
-        # Render the entire feed at once (blazing fast)
         st.markdown(feed_html, unsafe_allow_html=True)
 
 
