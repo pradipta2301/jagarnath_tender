@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import os
 import base64
+import textwrap
 from datetime import datetime
 
 # ============================================================
@@ -27,7 +28,8 @@ def get_base64_of_bin_file(bin_file):
     except:
         return ""
 
-bg_image_b64 = get_base64_of_bin_file("Gemini_Generated_Image_wpx7u6wpx7u6wpx7.png")
+# Load the NEW integrated banner image
+bg_image_b64 = get_base64_of_bin_file("Gemini_Generated_Image.png")
 
 # ============================================================
 # PREMIUM UI / CSS
@@ -87,6 +89,7 @@ button[data-baseweb="tab"] { font-weight: 700 !important; opacity: 1 !important;
 button[data-baseweb="tab"][aria-selected="true"] { color: #2563eb !important; }
 </style>
 """
+# CRITICAL: Replace prevents script showing block
 st.markdown(css.replace('\n', ' '), unsafe_allow_html=True)
 
 
@@ -144,7 +147,7 @@ if df.empty:
 
 
 # ============================================================
-# CUSTOM SVE HERO HEADER 
+# CUSTOM HERO HEADER (Image only, no overlaid logo text)
 # ============================================================
 header_html = f"""
 <div style="
@@ -159,8 +162,10 @@ header_html = f"""
     overflow: hidden;
     font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 ">
+    <!-- Left side gradient overlay to ensure text readability -->
     <div style="position: absolute; top:0; left:0; width: 60%; height: 100%; background: linear-gradient(90deg, #020617 10%, transparent 100%);"></div>
     
+    <!-- Left Text Content Only -->
     <div style="position: absolute; top: 85px; left: 40px; color: white;">
         <div style="font-size: 0.85rem; font-weight: 700; letter-spacing: 2px; color: #bfdbfe; margin-bottom: 8px; text-transform: uppercase;">Odisha Government Procurement</div>
         <h1 style="font-size: 2.8rem; font-weight: 800; margin: 0; line-height: 1.1; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
@@ -173,15 +178,6 @@ header_html = f"""
             <span style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; margin-right: 10px;">● Live Dataset</span>
             <span style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; margin-right: 10px;">⚡ AI Summaries</span>
             <span style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 20px; font-size: 0.8rem;">🎯 Advanced Filtering</span>
-        </div>
-    </div>
-
-    <div style="position: absolute; bottom: 12px; right: 55px; text-align: center; text-shadow: 0px 4px 8px rgba(0,0,0,0.8);">
-        <div style="font-size: 1.35rem; font-weight: 700; letter-spacing: 1.5px; margin-bottom: 4px;">
-            <span style="color: #fbbf24;">Shree Venkatesh</span> <span style="color: #f8fafc;">Enterprisers</span>
-        </div>
-        <div style="font-size: 0.75rem; font-weight: 600; color: #e2e8f0; letter-spacing: 4px;">
-            <span style="color: #fbbf24;">&mdash;</span> TRUST | QUALITY | COMMITMENT <span style="color: #fbbf24;">&mdash;</span>
         </div>
     </div>
 </div>
@@ -221,12 +217,12 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 
 # ============================================================
-# HORIZONTAL FILTER BAR
+# FILTER BAR (Now in TWO rows to keep labels visible!)
 # ============================================================
 st.markdown("### 🔍 Filter Opportunities")
 
-f1, f2, f3, f4, f5 = st.columns(5)
-
+# ROW 1: Dropdowns and Search
+f1, f2, f3, f4 = st.columns(4)
 with f1:
     search_query = st.text_input("Keyword Search", placeholder="Title, ID, or Summary...")
 with f2:
@@ -238,7 +234,20 @@ with f3:
 with f4:
     depts = [d for d in df["Department"].dropna().unique().tolist() if str(d).strip()] if "Department" in df.columns else []
     selected_depts = st.multiselect("Department", options=sorted(depts), placeholder="All Departments")
-with f5:
+
+# ROW 2: Dates only (Gives them wide columns so labels never hide)
+st.markdown("<div style='margin-top: 5px;'></div>", unsafe_allow_html=True)
+d1, d2, d3 = st.columns([1, 1, 2]) # 3rd column is left empty for spacing
+
+with d1:
+    min_open, max_open = None, None
+    selected_open_date = []
+    if "Opening Date" in df.columns and not df["Opening Date"].dropna().empty:
+        min_open = df["Opening Date"].min().date()
+        max_open = df["Opening Date"].max().date()
+        selected_open_date = st.date_input("Opening Date Range", value=(min_open, max_open), min_value=min_open, max_value=max_open)
+
+with d2:
     min_close, max_close = None, None
     selected_close_date = []
     if "Closing Date" in df.columns and not df["Closing Date"].dropna().empty:
@@ -261,6 +270,14 @@ if search_query:
 if selected_sources: filtered_df = filtered_df[filtered_df["Source Portal"].isin(selected_sources)]
 if selected_districts: filtered_df = filtered_df[filtered_df["District"].isin(selected_districts)]
 if selected_depts: filtered_df = filtered_df[filtered_df["Department"].isin(selected_depts)]
+
+# Filter Opening Date
+if len(selected_open_date) == 2:
+    start_o, end_o = selected_open_date
+    if start_o != min_open or end_o != max_open:
+        filtered_df = filtered_df[(filtered_df["Opening Date"].dt.date >= start_o) & (filtered_df["Opening Date"].dt.date <= end_o)]
+
+# Filter Closing Date
 if len(selected_close_date) == 2:
     start_c, end_c = selected_close_date
     if start_c != min_close or end_c != max_close:
