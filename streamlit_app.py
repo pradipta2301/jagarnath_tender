@@ -307,29 +307,14 @@ with kpi_container.container():
     # Helper to calculate active vs expired counts for any given dataframe
     def get_active_expired_counts(dataset):
         if dataset.empty: return 0, 0
-        
-        # Check if expired based on days_left calculation
         if 'days_left' in dataset.columns:
             expired_n = int((dataset['days_left'] < 0).sum())
             active_n = int((dataset['days_left'] >= 0).sum())
             return active_n, expired_n
-        
-        # Fallback calculation if columns aren't computed yet
-        is_opened = pd.Series(True, index=dataset.index)
-        if "Opening Date" in dataset.columns:
-            is_opened = (dataset["Opening Date"].dt.date <= today_dt)
-            if "Published Date" in dataset.columns:
-                is_opened |= (dataset["Opening Date"].isna() & (dataset["Published Date"].dt.date <= today_dt))
-        if "Closing Date" in dataset.columns:
-            is_active = is_opened & (dataset["Closing Date"].isna() | (dataset["Closing Date"].dt.date >= today_dt))
-            active_n = int(is_active.sum())
-            expired_n = int((~is_active).sum())
-            return active_n, expired_n
-        return int(is_opened.sum()), 0
+        return 0, 0
 
-    # Get counts for Filtered dataset vs Total Database dataset
+    # Calculate counts dynamically based on current filters
     filtered_active, filtered_expired = get_active_expired_counts(filtered_df)
-    total_active_db, total_expired_db = get_active_expired_counts(df)
 
     dist_count = filtered_df["District"].nunique() if "District" in filtered_df.columns else 0
     total_value = filtered_df["Tender Value"].sum() if "Tender Value" in filtered_df.columns else 0
@@ -354,18 +339,18 @@ with kpi_container.container():
         </div>
         '''.replace('\n', ' '), unsafe_allow_html=True)
 
-    # Active Tenders Revolving Card (Now revolves between Active & Expired, changing with filters!)
+    # Active & Expired Tenders Revolving Card
     with k2: 
         st.markdown(f'''
         <div class="kpi-card kpi-green">
             <div class="kpi-icon">🟢</div>
             <div class="revolving-container">
                 <div class="revolve-item item-1">
-                    <div class="kpi-label">Filtered Active</div>
+                    <div class="kpi-label">Active Tenders</div>
                     <div class="kpi-value">{filtered_active:,}</div>
                 </div>
                 <div class="revolve-item item-2">
-                    <div class="kpi-label">Filtered Expired</div>
+                    <div class="kpi-label">Expired Tenders</div>
                     <div class="kpi-value">{filtered_expired:,}</div>
                 </div>
             </div>
