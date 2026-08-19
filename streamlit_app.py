@@ -67,6 +67,18 @@ css = """
 .kpi-orange { border-top: 4px solid #f59e0b; }
 .kpi-cyan { border-top: 4px solid #0891b2; }
 
+/* ---------- Revolving Animation for Total Tenders ---------- */
+.revolving-container { position: relative; height: 50px; overflow: hidden; }
+.revolve-item { position: absolute; width: 100%; top: 0; left: 0; animation: flip 6s infinite ease-in-out; }
+.item-2 { animation-delay: 3s; opacity: 0; transform: translateY(15px); }
+
+@keyframes flip {
+    0%, 40% { opacity: 1; transform: translateY(0px); }
+    45%, 50% { opacity: 0; transform: translateY(-15px); }
+    90%, 95% { opacity: 0; transform: translateY(15px); }
+    100% { opacity: 1; transform: translateY(0px); }
+}
+
 /* ---------- Tender Cards (SaaS Feed UI) ---------- */
 .tender-card {
     background: white; border-radius: 12px; padding: 20px 24px;
@@ -79,10 +91,7 @@ css = """
 .tc-meta { font-size: 0.85rem; color: #475569; margin-bottom: 12px; display: flex; gap: 15px; align-items: center; }
 .tc-tag { background: #f1f5f9; padding: 6px 12px; border-radius: 8px; font-weight: 600; color: #334155; display: inline-block; line-height: 1.4; }
 .tc-loc { font-size: 0.9rem; color: #334155; background: #f8fafc; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #f1f5f9;}
-
-/* Updated Summary text to be dark gray and slightly bolder */
 .tc-summary { font-size: 0.95rem; color: #1e293b; margin-bottom: 18px; line-height: 1.5; font-weight: 500; }
-
 .tc-grid { 
     display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 10px; 
     align-items: center; background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #f1f5f9;
@@ -197,8 +206,6 @@ st.markdown(header_html.replace('\n', ' '), unsafe_allow_html=True)
 # ============================================================
 # KPI CARDS PLACEHOLDER
 # ============================================================
-# We create an empty container here so we can inject the KPI cards visually above the filters,
-# even though the math for the KPI cards is done below after the filters are processed!
 kpi_container = st.empty()
 
 
@@ -213,13 +220,13 @@ with f1:
     search_query = st.text_input("Keyword Search", placeholder="Title, ID...")
 with f2:
     sources = [d for d in df["Source Portal"].dropna().unique().tolist() if str(d).strip()] if "Source Portal" in df.columns else []
-    selected_sources = st.multiselect("Source Portal", options=sorted(sources), placeholder="All")
+    selected_sources = st.multiselect("Source Portal", options=sorted(sources), placeholder="All Portals")
 with f3:
     districts = [d for d in df["District"].dropna().unique().tolist() if str(d).strip()] if "District" in df.columns else []
-    selected_districts = st.multiselect("District", options=sorted(districts), placeholder="All")
+    selected_districts = st.multiselect("District", options=sorted(districts), placeholder="All Districts")
 with f4:
     depts = [d for d in df["Department"].dropna().unique().tolist() if str(d).strip()] if "Department" in df.columns else []
-    selected_depts = st.multiselect("Department", options=sorted(depts), placeholder="All")
+    selected_depts = st.multiselect("Department", options=sorted(depts), placeholder="All Departments")
 with f5:
     selected_open_date = st.date_input("Opening (After)", value=None)
 with f6:
@@ -251,12 +258,9 @@ if selected_close_date:
 # ============================================================
 # CALCULATE & RENDER KPI CARDS
 # ============================================================
-# Now that we have our `filtered_df`, we inject the cards back into the placeholder at the top!
 with kpi_container.container():
-    # Total Tenders ALWAYS stays static based on the original `df`
     total_tenders = len(df)
     
-    # Active, District, and Value are DYNAMIC based on `filtered_df`
     today = datetime.now().date()
     active_count = 0
     if not filtered_df.empty:
@@ -275,7 +279,25 @@ with kpi_container.container():
     total_value = filtered_df["Tender Value"].sum() if "Tender Value" in filtered_df.columns else 0
 
     k1, k2, k3, k4 = st.columns(4)
-    with k1: st.markdown(f'<div class="kpi-card kpi-blue"><div class="kpi-icon">📋</div><div class="kpi-label">Total Tenders</div><div class="kpi-value">{total_tenders:,}</div></div>', unsafe_allow_html=True)
+    
+    # 🌟 THE NEW REVOLVING CARD
+    with k1: 
+        st.markdown(f'''
+        <div class="kpi-card kpi-blue">
+            <div class="kpi-icon">📋</div>
+            <div class="revolving-container">
+                <div class="revolve-item item-1">
+                    <div class="kpi-label">Filtered Tenders</div>
+                    <div class="kpi-value">{len(filtered_df):,}</div>
+                </div>
+                <div class="revolve-item item-2">
+                    <div class="kpi-label">Total in Database</div>
+                    <div class="kpi-value">{total_tenders:,}</div>
+                </div>
+            </div>
+        </div>
+        '''.replace('\n', ' '), unsafe_allow_html=True)
+        
     with k2: st.markdown(f'<div class="kpi-card kpi-green"><div class="kpi-icon">🟢</div><div class="kpi-label">Active Tenders</div><div class="kpi-value">{active_count:,}</div></div>', unsafe_allow_html=True)
     with k3: st.markdown(f'<div class="kpi-card kpi-orange"><div class="kpi-icon">📍</div><div class="kpi-label">Districts Covered</div><div class="kpi-value">{dist_count:,}</div></div>', unsafe_allow_html=True)
     with k4: st.markdown(f'<div class="kpi-card kpi-cyan"><div class="kpi-icon">💰</div><div class="kpi-label">Total Pipeline Value</div><div class="kpi-value">₹{total_value / 10000000:,.1f} Cr</div></div>', unsafe_allow_html=True)
