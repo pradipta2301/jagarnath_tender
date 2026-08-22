@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 import os
 import base64
-import textwrap
+import urllib.parse
 from datetime import datetime
 
 # ============================================================
@@ -130,7 +130,7 @@ st.markdown(css.replace('\n', ' '), unsafe_allow_html=True)
 
 
 # ============================================================
-# DATA LOADING
+# DATA LOADING & BETTER SOURCE IDENTIFICATION
 # ============================================================
 @st.cache_data(ttl=600)
 def load_data():
@@ -151,11 +151,31 @@ def load_data():
             if date_col in df.columns:
                 df[date_col] = pd.to_datetime(df[date_col], errors="coerce")
 
-        if "Tender No" in df.columns:
-            def identify_source(t_no):
-                return "GeM" if str(t_no).strip().upper().startswith("GEM") else "NIC / State Portal"
-            idx = df.columns.get_loc("Tender No") + 1
-            df.insert(idx, "Source Portal", df["Tender No"].apply(identify_source))
+        # Better Source Categorization based on Link / Domain
+        def identify_source(row):
+            link = str(row.get("Link", "")).lower()
+            t_no = str(row.get("Tender No", "")).lower()
+            if "gem.gov.in" in link or "gem/" in t_no:
+                return "GeM Portal"
+            elif "ocac.in" in link:
+                return "OCAC Portal"
+            elif ".odisha.gov.in" in link:
+                try:
+                    parsed_netloc = urllib.parse.urlparse(row.get("Link", "")).netloc
+                    if "tenders" in parsed_netloc:
+                        return "Odisha Tenders (NIC)"
+                    # Extract district name if available in domain (e.g. mayurbhanj.odisha.gov.in -> Mayurbhanj)
+                    parts = parsed_netloc.split('.')
+                    if len(parts) > 2 and parts[-3] != 'www':
+                        return f"District: {parts[-3].capitalize()}"
+                except:
+                    pass
+                return "Odisha State Portal"
+            else:
+                return "Other Portals"
+
+        idx = df.columns.get_loc("Tender No") + 1
+        df.insert(idx, "Source Portal", df.apply(identify_source, axis=1))
 
         def get_valid_link(row):
             link = str(row.get("Link", "")).strip()
@@ -406,7 +426,7 @@ with tab1:
             
             title_html = f'<div class="tc-title">{title}</div>' if title.strip().lower() != category.strip().lower() else ''
             
-            # Additional Documents Logic (Conditional Dropdown mapped to 'Additional Documents' column)
+            # Additional Documents Logic
             add_docs_raw = str(row.get('Additional Documents', '')).strip()
             add_docs_html = ""
             
