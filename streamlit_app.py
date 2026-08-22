@@ -107,11 +107,19 @@ css = """
 .tc-stat-label { font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; margin-bottom: 2px;}
 .tc-stat-val { font-size: 0.95rem; color: #0f172a; font-weight: 700; }
 .tc-btn { 
-    background: #2563eb; color: white !important; padding: 10px 20px; 
-    border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.9rem; transition: 0.2s;
-    display: inline-block;
+    background: #2563eb; color: white !important; padding: 10px 18px; 
+    border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.85rem; transition: 0.2s;
+    display: inline-block; text-align: center;
 }
 .tc-btn:hover { background: #1d4ed8; }
+
+/* Additional Documents Dropdown styling */
+.tc-select {
+    background: white; color: #0f172a; padding: 9px 12px; border-radius: 8px;
+    font-weight: 600; font-size: 0.85rem; border: 1px solid #cbd5e1; cursor: pointer;
+    outline: none; transition: 0.2s;
+}
+.tc-select:hover { border-color: #2563eb; }
 
 /* Tabs overriding */
 button[data-baseweb="tab"] { font-weight: 700 !important; opacity: 1 !important; font-size: 1.1rem !important; }
@@ -249,13 +257,10 @@ with f7:
 filtered_df = df.copy()
 today_dt = datetime.now().date()
 
-# Helper function to compute days left and urgency
 def get_urgency_info(closing_date):
     if pd.isna(closing_date):
         return 9999, "No Closing Date", "badge-gray"
-    
     delta = (closing_date.date() - today_dt).days
-    
     if delta < 0:
         return delta, f"{-delta} days expired", "badge-gray"
     elif delta <= 2:
@@ -267,11 +272,9 @@ def get_urgency_info(closing_date):
     else:
         return delta, f"{delta} days left", "badge-green"
 
-# Calculate Days Left & Status for all rows
 filtered_df['days_left'], filtered_df['urgency_text'], filtered_df['badge_class'] = zip(*filtered_df['Closing Date'].map(get_urgency_info))
 filtered_df['is_expired'] = filtered_df['days_left'] < 0
 
-# Status Filter (Active vs Expired)
 if status_filter == "Active Only":
     filtered_df = filtered_df[~filtered_df['is_expired']]
 elif status_filter == "Expired Only":
@@ -293,7 +296,6 @@ if selected_open_date:
 if selected_close_date:
     filtered_df = filtered_df[(filtered_df["Closing Date"].notna()) & (filtered_df["Closing Date"].dt.date <= selected_close_date)]
 
-# SMART SORTING: Active tenders sorted by soonest closing date first. Expired pushed to bottom.
 filtered_df['sort_helper'] = filtered_df['days_left'].apply(lambda x: 999999 if x < 0 else x)
 filtered_df = filtered_df.sort_values(by=['sort_helper', 'Closing Date'], ascending=[True, True])
 
@@ -304,7 +306,6 @@ filtered_df = filtered_df.sort_values(by=['sort_helper', 'Closing Date'], ascend
 with kpi_container.container():
     total_tenders = len(df)
     
-    # Helper to calculate active vs expired counts for any given dataframe
     def get_active_expired_counts(dataset):
         if dataset.empty: return 0, 0
         if 'days_left' in dataset.columns:
@@ -313,15 +314,12 @@ with kpi_container.container():
             return active_n, expired_n
         return 0, 0
 
-    # Calculate counts dynamically based on current filters
     filtered_active, filtered_expired = get_active_expired_counts(filtered_df)
-
     dist_count = filtered_df["District"].nunique() if "District" in filtered_df.columns else 0
     total_value = filtered_df["Tender Value"].sum() if "Tender Value" in filtered_df.columns else 0
 
     k1, k2, k3, k4 = st.columns(4)
     
-    # Total Tenders Revolving Card
     with k1: 
         st.markdown(f'''
         <div class="kpi-card kpi-blue">
@@ -339,7 +337,6 @@ with kpi_container.container():
         </div>
         '''.replace('\n', ' '), unsafe_allow_html=True)
 
-    # Active & Expired Tenders Revolving Card
     with k2: 
         st.markdown(f'''
         <div class="kpi-card kpi-green">
@@ -409,6 +406,24 @@ with tab1:
             
             title_html = f'<div class="tc-title">{title}</div>' if title.strip().lower() != category.strip().lower() else ''
             
+            # Additional Documents Logic (Conditional Dropdown mapped to 'Additional Documents' column)
+            add_docs_raw = str(row.get('Additional Documents', '')).strip()
+            add_docs_html = ""
+            
+            if add_docs_raw and add_docs_raw.lower() != 'nan':
+                doc_links = [d.strip() for d in add_docs_raw.replace(',', ' ').split() if d.strip().startswith('http')]
+                
+                if len(doc_links) == 1:
+                    add_docs_html = f'<a href="{doc_links[0]}" target="_blank" class="tc-btn" style="background: #0f172a; margin-left: 8px;">📁 Extra Doc</a>'
+                elif len(doc_links) > 1:
+                    options_html = "".join([f'<option value="{dl}">Doc {i+1}</option>' for i, dl in enumerate(doc_links)])
+                    add_docs_html = f"""
+                    <select class="tc-select" style="margin-left: 8px;" onchange="if(this.value) window.open(this.value, '_blank');">
+                        <option value="" disabled selected>📁 Additional Docs ({len(doc_links)})</option>
+                        {options_html}
+                    </select>
+                    """
+
             card = f"""
             <div class="tender-card">
                 <div class="tc-dept-row">
@@ -430,8 +445,9 @@ with tab1:
                     <div><div class="tc-stat-label">Published</div><div class="tc-stat-val">📅 {pub_str}</div></div>
                     <div><div class="tc-stat-label">Opening</div><div class="tc-stat-val">🟢 {opn_str}</div></div>
                     <div><div class="tc-stat-label">Closing</div><div class="tc-stat-val">⏳ {cls_str}</div></div>
-                    <div style="text-align: right;">
+                    <div style="text-align: right; display: flex; align-items: center; justify-content: flex-end;">
                         <a href="{link}" target="_blank" class="tc-btn">🔗 View Document</a>
+                        {add_docs_html}
                     </div>
                 </div>
             </div>
