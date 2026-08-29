@@ -101,7 +101,7 @@ css = """
 .tc-loc { font-size: 0.9rem; color: #334155; background: #f8fafc; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #f1f5f9;}
 .tc-summary { font-size: 0.95rem; color: #1e293b; margin-bottom: 18px; line-height: 1.5; font-weight: 500; }
 .tc-grid { 
-    display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 10px; 
+    display: grid; grid-template-columns: repeat(6, 1fr) auto; gap: 10px; 
     align-items: center; background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #f1f5f9;
 }
 .tc-stat-label { font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; margin-bottom: 2px;}
@@ -164,7 +164,6 @@ def load_data():
                     parsed_netloc = urllib.parse.urlparse(row.get("Link", "")).netloc
                     if "tenders" in parsed_netloc:
                         return "Odisha Tenders (NIC)"
-                    # Extract district name if available in domain (e.g. mayurbhanj.odisha.gov.in -> Mayurbhanj)
                     parts = parsed_netloc.split('.')
                     if len(parts) > 2 and parts[-3] != 'www':
                         return f"District: {parts[-3].capitalize()}"
@@ -410,8 +409,12 @@ with tab1:
             
             val = row.get('Tender Value', 0)
             emd = row.get('EMD', 0)
+            qty = row.get('Quantity', 'N/A')
+            
             val_str = f"₹ {val:,.0f}" if val > 0 else "Refer Doc"
             emd_str = f"₹ {emd:,.0f}" if emd > 0 else "N/A"
+            qty_str = f"{qty:,.0f}" if pd.notnull(qty) and str(qty).replace('.', '', 1).isdigit() else str(qty)
+            if qty_str == 'nan' or not qty_str.strip(): qty_str = 'N/A'
             
             pub_d = row.get('Published Date')
             opn_d = row.get('Opening Date')
@@ -462,6 +465,7 @@ with tab1:
                 <div class="tc-grid">
                     <div><div class="tc-stat-label">Value</div><div class="tc-stat-val">💰 {val_str}</div></div>
                     <div><div class="tc-stat-label">EMD</div><div class="tc-stat-val">🛡️ {emd_str}</div></div>
+                    <div><div class="tc-stat-label">Quantity</div><div class="tc-stat-val">📦 {qty_str}</div></div>
                     <div><div class="tc-stat-label">Published</div><div class="tc-stat-val">📅 {pub_str}</div></div>
                     <div><div class="tc-stat-label">Opening</div><div class="tc-stat-val">🟢 {opn_str}</div></div>
                     <div><div class="tc-stat-label">Closing</div><div class="tc-stat-val">⏳ {cls_str}</div></div>
