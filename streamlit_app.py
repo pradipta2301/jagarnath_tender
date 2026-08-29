@@ -413,7 +413,12 @@ with tab1:
             
             val_str = f"₹ {val:,.0f}" if val > 0 else "Refer Doc"
             emd_str = f"₹ {emd:,.0f}" if emd > 0 else "N/A"
-            qty_str = f"{qty:,.0f}" if pd.notnull(qty) and str(qty).replace('.', '', 1).isdigit() else str(qty)
+            
+            try:
+                qty_float = float(str(qty).replace(',', ''))
+                qty_str = f"{qty_float:,.0f}" if qty_float.is_integer() else str(qty)
+            except:
+                qty_str = str(qty)
             if qty_str == 'nan' or not qty_str.strip(): qty_str = 'N/A'
             
             pub_d = row.get('Published Date')
