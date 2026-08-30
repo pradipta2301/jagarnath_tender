@@ -81,8 +81,9 @@ css = """
 /* ---------- Tender Cards (SaaS Feed UI) ---------- */
 .tender-card {
     background: white; border-radius: 12px; padding: 20px 24px;
-    margin-bottom: 16px; border: 1px solid #e2e8f0; border-left: 5px solid #2563eb;
+    margin-bottom: 16px; border: 1px solid #e2e8f0; border-left: 5px solid #2563eb !important;
     box-shadow: 0 4px 10px rgba(0,0,0,0.03); transition: all 0.2s ease;
+    position: relative; box-sizing: border-box;
 }
 .tender-card:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
 .tc-dept-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
